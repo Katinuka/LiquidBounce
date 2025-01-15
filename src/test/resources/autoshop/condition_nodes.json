@@ -1,0 +1,196 @@
+{
+  "simple_item": {
+    "id": "wool",
+    "min": 16,
+    "max": 32
+  },
+  "without_min_value": {
+    "id": "wool",
+    "max": 32
+  },
+  "without_max_value": {
+    "id": "potion:speed",
+    "min": 2
+  },
+  "with_extra_fields": {
+    "id": "wool",
+    "min": 48,
+    "comment": "need at least 48 blocks"
+  },
+  "no_item": {
+    "id": "iron_sword",
+    "max": 0,
+    "comment": "should have 0 swords"
+  },
+  "at_least_one": {
+    "id": "sword:tier:1"
+  },
+
+  "simple_all": {
+    "all": [
+      {
+        "id": "wool",
+        "min": 32,
+        "max": 64
+      },
+      {
+        "id": "golden_apple",
+        "min": 2,
+        "max": 6
+      }
+    ]
+  },
+  "empty_all": {
+    "all": []
+  },
+  "single_element_all": {
+    "all": [
+      {
+        "id": "stone_sword"
+      }
+    ]
+  },
+  "nested_all": {
+    "all": [
+      {
+        "id": "golden_apple",
+        "min": 2
+      },
+      {
+        "all": [
+          {
+            "id": "chainmail_chestplate"
+          },
+          {
+            "id": "chainmail_leggings"
+          }
+        ]
+      },
+      {
+        "id": "iron_boots"
+      },
+      {
+        "id": "diamond_sword",
+        "max": 0
+      }
+    ]
+  },
+
+  "simple_any": {
+    "any": [
+      {
+        "id": "wool",
+        "min": 32,
+        "max": 128
+      },
+      {
+        "id": "fireball",
+        "max": 10
+      },
+      {
+        "id": "axe:tier:1"
+      }
+    ]
+  },
+  "empty_any": {
+    "any": []
+  },
+  "single_element_any": {
+    "any": [
+      {
+        "id": "diamond_sword:sharpness:1"
+      }
+    ]
+  },
+  "nested_any": {
+    "any": [
+      {
+        "any": [
+          {
+            "id": "diamond_sword"
+          },
+          {
+            "id": "iron_sword"
+          }
+        ]
+      },
+      {
+        "any": [
+          {
+            "id": "diamond_chestplate"
+          },
+          {
+            "id": "iron_chestplate"
+          }
+        ]
+      },
+      {
+        "id": "emerald",
+        "min": 4
+      }
+    ]
+  },
+
+  "mixed": {
+    "any": [
+      {
+        "id": "gold_ingot",
+        "min": 16
+      },
+      {
+        "all": [
+          {
+            "any": [
+              {
+                "id": "gold_ingot",
+                "min": 10},
+              {
+                "id": "golden_apple"
+              }
+            ]
+          },
+          {
+            "any": [
+              {
+                "id": "diamond_leggings"
+              },
+              {
+                "id": "iron_leggings"
+              }
+            ]
+          },
+          {
+            "any": [
+              {
+                "id": "diamond_chestplate"
+              },
+              {
+                "id": "iron_chestplate"
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  "overly_nested": {
+    "any": [
+      {
+        "all": [
+          {
+            "any": [
+              {
+                "all": [
+                  {
+                    "id": "obsidian",
+                    "min": 4
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  }
+}

@@ -32,7 +32,7 @@ import net.ccbluex.liquidbounce.utils.client.notification
 
 object AutoShopConfig {
 
-    private val autoShopGson = GsonBuilder()
+    val autoShopGson = GsonBuilder()
         .setPrettyPrinting()
         .registerTypeAdapter(ShopElement::class.javaObjectType, ShopElementDeserializer())
         .registerTypeAdapter(ItemInfo::class.javaObjectType, ItemInfoDeserializer())
