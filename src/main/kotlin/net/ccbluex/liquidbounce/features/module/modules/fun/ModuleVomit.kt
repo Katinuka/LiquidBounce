@@ -1,7 +1,7 @@
 /*
  * This file is part of LiquidBounce (https://github.com/CCBlueX/LiquidBounce)
  *
- * Copyright (c) 2015 - 2024 CCBlueX
+ * Copyright (c) 2015 - 2025 CCBlueX
  *
  * LiquidBounce is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -56,12 +56,8 @@ object ModuleVomit : ClientModule("Vomit", Category.FUN) {
             event.schedule(inventoryConstraints, if (inventoryConstraints.clickDelay.last <= 0) {
                 // Depending on how many empty slots we have, this might kick in the packet rate limit
                 // of ViaVersion or Minecraft/Paper itself
-                listOf(
-                    *emptySlots.map { slot -> CreativeInventoryAction.performFillSlot(randomStack, slot) }
-                        .toTypedArray(),
-                    *emptySlots.map { slot -> ClickInventoryAction.performThrow(null, slot) }
-                        .toTypedArray()
-                )
+                emptySlots.map { slot -> CreativeInventoryAction.performFillSlot(randomStack, slot) } +
+                    emptySlots.map { slot -> ClickInventoryAction.performThrow(null, slot) }
             } else {
                 val slot = emptySlots.random()
 

@@ -1,7 +1,7 @@
 /*
  * This file is part of LiquidBounce (https://github.com/CCBlueX/LiquidBounce)
  *
- * Copyright (c) 2015 - 2024 CCBlueX
+ * Copyright (c) 2015 - 2025 CCBlueX
  *
  * LiquidBounce is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -168,10 +168,7 @@ object PacketQueueManager : EventListener {
 
         renderEnvironmentForWorld(matrixStack) {
             withColor(color) {
-                @Suppress("SpreadOperator")
-                drawLineStrip(*positions.mapArray { vec3d ->
-                    Vec3(relativeToCamera(vec3d))
-                })
+                drawLineStrip(positions = positions.mapArray { vec3d -> Vec3(relativeToCamera(vec3d)) })
             }
         }
 
@@ -217,7 +214,7 @@ object PacketQueueManager : EventListener {
     }
 
     fun cancel() {
-        positions.firstOrNull().let { pos ->
+        positions.firstOrNull()?.let { pos ->
             player.setPosition(pos)
         }
 

@@ -1,7 +1,7 @@
 /*
  * This file is part of LiquidBounce (https://github.com/CCBlueX/LiquidBounce)
  *
- * Copyright (c) 2015 - 2024 CCBlueX
+ * Copyright (c) 2015 - 2025 CCBlueX
  *
  * LiquidBounce is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -18,18 +18,17 @@
  */
 package net.ccbluex.liquidbounce.utils.block.hole
 
-import it.unimi.dsi.fastutil.longs.Long2ByteMap
 import it.unimi.dsi.fastutil.longs.Long2ByteOpenHashMap
+import net.ccbluex.liquidbounce.features.module.MinecraftShortcuts
 import net.ccbluex.liquidbounce.utils.block.ChunkScanner
 import net.ccbluex.liquidbounce.utils.block.Region
-import net.ccbluex.liquidbounce.utils.client.mc
+import net.ccbluex.liquidbounce.utils.block.getState
 import net.ccbluex.liquidbounce.utils.kotlin.getValue
 import net.minecraft.block.Block
 import net.minecraft.block.BlockState
 import net.minecraft.registry.Registries
 import net.minecraft.util.math.BlockPos
 import net.minecraft.util.math.Direction
-import net.minecraft.world.chunk.Chunk
 import java.util.concurrent.ConcurrentSkipListSet
 
 private const val UNBREAKABLE = (-1).toByte()
@@ -37,13 +36,14 @@ private const val AIR = 0.toByte()
 private const val BREAKABLE = 1.toByte()
 
 // BlockState types
-typealias State = Byte
+private typealias State = Byte
+private typealias BlockStateBuffer = Long2ByteOpenHashMap
 
-object HoleTracker : ChunkScanner.BlockChangeSubscriber {
+object HoleTracker : ChunkScanner.BlockChangeSubscriber, MinecraftShortcuts {
 
     val holes = ConcurrentSkipListSet<Hole>()
     private val mutable by ThreadLocal.withInitial(BlockPos::Mutable)
-    private val fullSurroundings = setOf(Direction.EAST, Direction.WEST, Direction.SOUTH, Direction.NORTH)
+    private val fullSurroundings = arrayOf(Direction.EAST, Direction.WEST, Direction.SOUTH, Direction.NORTH)
     private val UNBREAKABLE_BLOCKS: Set<Block> by lazy {
         Registries.BLOCK.filterTo(hashSetOf()) { it.blastResistance >= 600 }
     }
@@ -61,7 +61,7 @@ object HoleTracker : ChunkScanner.BlockChangeSubscriber {
         }
 
         // Check new ones
-        val region = Region(pos.add(-2, -3, -2), pos.add(2, 3, 2))
+        val region = Region.quadAround(pos, 2, 3)
         invalidate(region)
         region.cachedUpdate()
     }
@@ -71,29 +71,35 @@ object HoleTracker : ChunkScanner.BlockChangeSubscriber {
     }
 
     @Suppress("detekt:CognitiveComplexMethod")
-    fun Region.cachedUpdate(chunk: Chunk? = null) {
-        val buffer = Long2ByteOpenHashMap(volume)
+    fun Region.cachedUpdate() {
+        val buffer = BlockStateBuffer(volume)
+
+        val mutableLocal = BlockPos.Mutable()
+
+        val topY = world.topYInclusive - 2
+
+        val holesInRegion = if (holes.size >= 32) {
+            holes.subSet(
+                Hole(Hole.Type.ONE_ONE, Region.from(mutableLocal.set(start, -2, -2, -2))), true,
+                Hole(Hole.Type.ONE_ONE, Region.from(mutableLocal.set(endInclusive, 2, 2, 2))), true
+            )
+        } else {
+            holes
+        }
 
         // Only check positions in this chunk (pos is BlockPos.Mutable)
         forEach { pos ->
-            if (chunk != null && (pos.y <= chunk.bottomY || pos.y - 1 >= chunk.topY)) {
+            if (pos.y >= topY || holesInRegion.any { pos in it } || !buffer.checkSameXZ(pos)) {
                 return@forEach
             }
 
-            if (holes.any { pos in it } || !buffer.checkSameXZ(pos)) {
-                return@forEach
-            }
-
-            val surroundings = fullSurroundings.filterTo(HashSet(4, 1.0F)) { direction ->
+            val surroundings = fullSurroundings.filterTo(ArrayList(4)) { direction ->
                 buffer.cache(mutable.set(pos, direction)) == UNBREAKABLE
             }
 
             when (surroundings.size) {
                 // 1*1
-                4 -> holes += Hole(
-                    Hole.Type.ONE_ONE,
-                    Region.from(pos),
-                )
+                4 -> holes += Hole(Hole.Type.ONE_ONE, Region.from(pos))
                 // 1*2
                 3 -> {
                     val airDirection = fullSurroundings.first { it !in surroundings }
@@ -104,25 +110,19 @@ object HoleTracker : ChunkScanner.BlockChangeSubscriber {
                     }
 
                     val airOpposite = airDirection.opposite
-                    val checkDirections = with(fullSurroundings.iterator()) {
-                        Array(3) {
-                            val value = next()
-                            if (value == airOpposite) next() else value
-                        }
+                    var idx = 0
+                    val checkDirections = Array(3) {
+                        val value = fullSurroundings[idx++]
+                        if (value === airOpposite) fullSurroundings[idx++] else value
                     }
 
                     if (buffer.checkSurroundings(another, checkDirections)) {
-                        holes += Hole(
-                            Hole.Type.ONE_TWO,
-                            Region(pos, another),
-                        )
+                        holes += Hole(Hole.Type.ONE_TWO, Region(pos, another))
                     }
                 }
                 // 2*2
                 2 -> {
                     val (direction1, direction2) = fullSurroundings.filterTo(ArrayList(2)) { it !in surroundings }
-
-                    val mutableLocal = BlockPos.Mutable()
 
                     if (!buffer.checkState(mutableLocal.set(pos, direction1), direction1, direction2.opposite)) {
                         return@forEach
@@ -136,21 +136,18 @@ object HoleTracker : ChunkScanner.BlockChangeSubscriber {
                         return@forEach
                     }
 
-                    holes += Hole(
-                        Hole.Type.TWO_TWO,
-                        Region(pos, mutableLocal),
-                    )
+                    holes += Hole(Hole.Type.TWO_TWO, Region(pos, mutableLocal))
                 }
             }
         }
     }
 
-    private fun Long2ByteMap.cache(blockPos: BlockPos): State {
+    private fun BlockStateBuffer.cache(blockPos: BlockPos): State {
         val longValue = blockPos.asLong()
         if (containsKey(longValue)) {
             return get(longValue)
         } else {
-            val state = mc.world?.getBlockState(blockPos) ?: return AIR
+            val state = blockPos.getState() ?: return AIR
             val result = when {
                 state.isAir -> AIR
                 state.block in UNBREAKABLE_BLOCKS -> UNBREAKABLE
@@ -161,7 +158,7 @@ object HoleTracker : ChunkScanner.BlockChangeSubscriber {
         }
     }
 
-    private fun Long2ByteMap.checkSameXZ(blockPos: BlockPos): Boolean {
+    private fun BlockStateBuffer.checkSameXZ(blockPos: BlockPos): Boolean {
         mutable.set(blockPos.x, blockPos.y - 1, blockPos.z)
         if (cache(mutable) != UNBREAKABLE) {
             return false
@@ -177,14 +174,14 @@ object HoleTracker : ChunkScanner.BlockChangeSubscriber {
         return true
     }
 
-    private fun Long2ByteMap.checkSurroundings(
+    private fun BlockStateBuffer.checkSurroundings(
         blockPos: BlockPos,
         directions: Array<out Direction>
     ): Boolean {
         return directions.all { cache(mutable.set(blockPos, it)) == UNBREAKABLE }
     }
 
-    private fun Long2ByteMap.checkState(
+    private fun BlockStateBuffer.checkState(
         blockPos: BlockPos,
         vararg directions: Direction
     ): Boolean {
@@ -196,7 +193,7 @@ object HoleTracker : ChunkScanner.BlockChangeSubscriber {
         val region = Region.from(chunk)
         if (region.intersects(HoleManager.movableRegionScanner.currentRegion)) {
             invalidate(region)
-            region.cachedUpdate(chunk)
+            region.cachedUpdate()
         }
     }
 

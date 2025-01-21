@@ -1,7 +1,7 @@
 /*
  * This file is part of LiquidBounce (https://github.com/CCBlueX/LiquidBounce)
  *
- * Copyright (c) 2015 - 2024 CCBlueX
+ * Copyright (c) 2015 - 2025 CCBlueX
  *
  * LiquidBounce is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -33,7 +33,6 @@ import net.ccbluex.liquidbounce.render.renderEnvironmentForGUI
 import net.ccbluex.liquidbounce.utils.client.asText
 import net.ccbluex.liquidbounce.utils.entity.box
 import net.ccbluex.liquidbounce.utils.kotlin.forEachWithSelf
-import net.ccbluex.liquidbounce.utils.kotlin.mapArray
 import net.ccbluex.liquidbounce.utils.kotlin.proportionOfValue
 import net.ccbluex.liquidbounce.utils.kotlin.valueAtProportion
 import net.ccbluex.liquidbounce.utils.math.*
@@ -42,6 +41,7 @@ import net.minecraft.client.gui.DrawContext
 import net.minecraft.entity.ItemEntity
 import net.minecraft.item.ItemStack
 import net.minecraft.util.math.Vec3d
+import org.joml.Vector3f
 
 private const val ITEM_SIZE: Int = 16
 private const val ITEM_SCALE: Float = 1.0F
@@ -181,7 +181,7 @@ object ModuleItemTags : ClientModule("ItemTags", Category.RENDER) {
 
     @JvmStatic
     private fun List<ItemEntity>.cluster(): Map<Vec3d, List<ItemStack>> {
-        val groups = arrayListOf<MutableSet<ItemEntity>>()
+        val groups = arrayListOf<Set<ItemEntity>>()
         val visited = hashSetOf<ItemEntity>()
 
         for (entity in this) {
@@ -201,7 +201,7 @@ object ModuleItemTags : ClientModule("ItemTags", Category.RENDER) {
         return groups.associate { entities ->
             Pair(
                 // Get the center pos of all entities
-                entities.mapArray { it.box.center }.reduce(Vec3d::add).multiply(1.0 / entities.size),
+                entities.map { it.box.center }.average(),
                 // Merge stacks with same item, order by count desc
                 entities.groupBy {
                     it.stack.item

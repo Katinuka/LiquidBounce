@@ -1,7 +1,7 @@
 /*
  * This file is part of LiquidBounce (https://github.com/CCBlueX/LiquidBounce)
  *
- * Copyright (c) 2015 - 2024 CCBlueX
+ * Copyright (c) 2015 - 2025 CCBlueX
  *
  * LiquidBounce is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -22,19 +22,24 @@ import net.ccbluex.liquidbounce.config.types.NamedChoice
 import net.ccbluex.liquidbounce.features.module.modules.combat.autoarmor.ArmorEvaluation
 import net.ccbluex.liquidbounce.features.module.modules.player.invcleaner.items.*
 import net.ccbluex.liquidbounce.features.module.modules.world.scaffold.ScaffoldBlockItemSelection
+import net.ccbluex.liquidbounce.utils.inventory.ItemSlot
+import net.ccbluex.liquidbounce.utils.inventory.VirtualItemSlot
 import net.ccbluex.liquidbounce.utils.item.*
 import net.ccbluex.liquidbounce.utils.kotlin.Priority
-import net.ccbluex.liquidbounce.utils.sorting.compareValueByCondition
+import net.ccbluex.liquidbounce.utils.sorting.compareByCondition
 import net.minecraft.entity.EquipmentSlot
 import net.minecraft.fluid.LavaFluid
 import net.minecraft.fluid.WaterFluid
 import net.minecraft.item.*
+import java.util.function.Predicate
 
-val PREFER_ITEMS_IN_HOTBAR: (o1: ItemFacet, o2: ItemFacet) -> Int =
-    { o1, o2 -> compareValueByCondition(o1, o2, ItemFacet::isInHotbar) }
-val STABILIZE_COMPARISON: (o1: ItemFacet, o2: ItemFacet) -> Int =
-    { o1, o2 -> o1.itemStack.hashCode().compareTo(o2.itemStack.hashCode()) }
-val PREFER_BETTER_DURABILITY: Comparator<ItemFacet> = compareBy { it.itemStack.maxDamage - it.itemStack.damage }
+val PREFER_ITEMS_IN_HOTBAR: Comparator<ItemFacet> = compareByCondition(ItemFacet::isInHotbar)
+val STABILIZE_COMPARISON: Comparator<ItemFacet> = Comparator.comparingInt {
+    it.itemStack.hashCode()
+}
+val PREFER_BETTER_DURABILITY: Comparator<ItemFacet> = Comparator.comparingInt {
+    it.itemStack.maxDamage - it.itemStack.damage
+}
 
 data class ItemCategory(val type: ItemType, val subtype: Int)
 
@@ -90,7 +95,7 @@ enum class ItemSortChoice(
      *
      * IF IT WAS IMPLEMENTED
      */
-    val satisfactionCheck: ((ItemStack) -> Boolean)? = null,
+    val satisfactionCheck: Predicate<ItemStack>? = null,
 ) : NamedChoice {
     SWORD("Sword", ItemCategory(ItemType.SWORD, 0)),
     WEAPON("Weapon", ItemCategory(ItemType.WEAPON, 0)),
@@ -175,7 +180,7 @@ class ItemCategorization(
             is BowItem -> arrayOf(BowItemFacet(slot))
             is CrossbowItem -> arrayOf(CrossbowItemFacet(slot))
             is ArrowItem -> arrayOf(ArrowItemFacet(slot))
-            is ToolItem -> arrayOf(ToolItemFacet(slot))
+            is MiningToolItem -> arrayOf(MiningToolItemFacet(slot))
             is FishingRodItem -> arrayOf(RodItemFacet(slot))
             is ShieldItem -> arrayOf(ShieldItemFacet(slot))
             is BlockItem -> {
@@ -187,7 +192,7 @@ class ItemCategorization(
                     arrayOf(ItemFacet(slot))
                 }
             }
-            is MilkBucketItem -> arrayOf(PrimitiveItemFacet(slot, ItemCategory(ItemType.BUCKET, 2)))
+            Items.MILK_BUCKET -> arrayOf(PrimitiveItemFacet(slot, ItemCategory(ItemType.BUCKET, 2)))
             is BucketItem -> {
                 when (item.fluid) {
                     is WaterFluid -> arrayOf(PrimitiveItemFacet(slot, ItemCategory(ItemType.BUCKET, 0)))

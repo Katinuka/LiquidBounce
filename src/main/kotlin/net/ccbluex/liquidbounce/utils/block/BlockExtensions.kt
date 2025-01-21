@@ -1,7 +1,7 @@
 /*
  * This file is part of LiquidBounce (https://github.com/CCBlueX/LiquidBounce)
  *
- * Copyright (c) 2015 - 2024 CCBlueX
+ * Copyright (c) 2015 - 2025 CCBlueX
  *
  * LiquidBounce is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -16,6 +16,9 @@
  * You should have received a copy of the GNU General Public License
  * along with LiquidBounce. If not, see <https://www.gnu.org/licenses/>.
  */
+
+@file:Suppress("TooManyFunctions")
+
 package net.ccbluex.liquidbounce.utils.block
 
 import it.unimi.dsi.fastutil.booleans.BooleanObjectPair
@@ -29,7 +32,6 @@ import net.ccbluex.liquidbounce.event.EventManager
 import net.ccbluex.liquidbounce.event.events.BlockBreakingProgressEvent
 import net.ccbluex.liquidbounce.render.FULL_BOX
 import net.ccbluex.liquidbounce.utils.client.*
-import net.ccbluex.liquidbounce.utils.entity.eyes
 import net.ccbluex.liquidbounce.utils.kotlin.mapArray
 import net.ccbluex.liquidbounce.utils.math.rangeTo
 import net.minecraft.block.*
@@ -51,6 +53,8 @@ import net.minecraft.world.RaycastContext
 import kotlin.math.ceil
 import kotlin.math.floor
 
+val DEFAULT_BLOCK_STATE: BlockState = Blocks.AIR.defaultState
+
 fun Vec3i.toBlockPos() = BlockPos(this)
 
 fun BlockPos.getState() = mc.world?.getBlockState(this)
@@ -59,7 +63,7 @@ fun BlockPos.getBlock() = getState()?.block
 
 fun BlockPos.getCenterDistanceSquared() = player.squaredDistanceTo(this.x + 0.5, this.y + 0.5, this.z + 0.5)
 
-fun BlockPos.getCenterDistanceSquaredEyes() = player.eyes.squaredDistanceTo(this.x + 0.5, this.y + 0.5, this.z + 0.5)
+fun BlockPos.getCenterDistanceSquaredEyes() = player.eyePos.squaredDistanceTo(this.x + 0.5, this.y + 0.5, this.z + 0.5)
 
 val BlockState.isBed: Boolean
     get() = isIn(BlockTags.BEDS)
@@ -241,17 +245,19 @@ fun BlockPos.searchLayer(layers: Int, vararg directions: Direction): Sequence<In
                 yield(IntObjectPair.of(layer, BlockPos.fromLong(pos)))
             }
 
-            // Search next layer
-            if (layer < layers) {
-                for (direction in directions) {
-                    mutable.set(pos)
-                    mutable.move(direction)
+            if (layer >= layers) {
+                continue
+            }
 
-                    val newLong = mutable.asLong()
-                    if (visited.add(newLong)) {
-                        layerQueue.enqueue(layer + 1)
-                        longValueQueue.enqueue(newLong)
-                    }
+            // Search next layer
+            for (direction in directions) {
+                mutable.set(pos)
+                mutable.move(direction)
+
+                val newLong = mutable.asLong()
+                if (visited.add(newLong)) {
+                    layerQueue.enqueue(layer + 1)
+                    longValueQueue.enqueue(newLong)
                 }
             }
         }
@@ -353,12 +359,13 @@ fun BlockPos.canStandOn(): Boolean {
 inline fun Box.isBlockAtPosition(
     isCorrectBlock: (Block?) -> Boolean,
 ): Boolean {
-    val blockPos = BlockPos.Mutable(0, minY.toInt(), 0)
+    val blockPos = BlockPos.Mutable(0, floor(minY).toInt(), 0)
 
     for (x in floor(minX).toInt()..ceil(maxX).toInt()) {
-        for (y in floor(minY).toInt()..ceil(maxY).toInt()) {
+        for (z in floor(minZ).toInt()..ceil(maxZ).toInt()) {
             blockPos.x = x
-            blockPos.y = y
+            blockPos.z = z
+
             if (isCorrectBlock(blockPos.getBlock())) {
                 return true
             }
@@ -498,6 +505,12 @@ private inline fun handleActionsOnAccept(
 
     return
 }
+
+private fun ActionResult.shouldSwingHand(): Boolean {
+    return this !is ActionResult.Success ||
+        this.swingSource != ActionResult.SwingSource.SERVER
+}
+
 
 /**
  * Just interacts with the item in the hand instead of using it on the block

@@ -1,7 +1,7 @@
 /*
  * This file is part of LiquidBounce (https://github.com/CCBlueX/LiquidBounce)
  *
- * Copyright (c) 2015 - 2024 CCBlueX
+ * Copyright (c) 2015 - 2025 CCBlueX
  *
  * LiquidBounce is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -20,7 +20,7 @@ package net.ccbluex.liquidbounce.features.module.modules.world
 
 import it.unimi.dsi.fastutil.booleans.BooleanDoubleImmutablePair
 import it.unimi.dsi.fastutil.objects.ObjectDoubleImmutablePair
-import net.ccbluex.liquidbounce.event.events.SimulatedTickEvent
+import net.ccbluex.liquidbounce.event.events.RotationUpdateEvent
 import net.ccbluex.liquidbounce.event.handler
 import net.ccbluex.liquidbounce.features.module.Category
 import net.ccbluex.liquidbounce.features.module.ClientModule
@@ -33,7 +33,7 @@ import net.ccbluex.liquidbounce.utils.block.placer.BlockPlacer
 import net.ccbluex.liquidbounce.utils.collection.Filter
 import net.ccbluex.liquidbounce.utils.collection.getSlot
 import net.ccbluex.liquidbounce.utils.combat.shouldBeAttacked
-import net.ccbluex.liquidbounce.utils.inventory.HOTBAR_SLOTS
+import net.ccbluex.liquidbounce.utils.inventory.Slots
 import net.ccbluex.liquidbounce.utils.item.getBlock
 import net.ccbluex.liquidbounce.utils.kotlin.Priority
 import net.ccbluex.liquidbounce.utils.math.sq
@@ -52,7 +52,7 @@ import kotlin.math.max
  *
  * @author ccetl
  */
-object ModuleHoleFiller : ClientModule("HoleFiller", Category.WORLD) {
+object ModuleHoleFiller : ClientModule("HoleFiller", Category.WORLD), HoleManagerSubscriber {
 
     /**
      * When enabled, only places when entities are about to enter a hole, otherwise fills all holes.
@@ -108,9 +108,13 @@ object ModuleHoleFiller : ClientModule("HoleFiller", Category.WORLD) {
         allowSupportPlacements = false
     ))
 
+    private val range: Int get() = ceil(max(placer.range, placer.wallRange)).toInt()
+
+    override fun horizontalDistance(): Int = range
+    override fun verticalDistance(): Int = range
+
     override fun enable() {
-        val range = ceil(max(placer.range, placer.wallRange)).toInt()
-        HoleManager.subscribe(this, HoleManagerSubscriber({ range }, { range }))
+        HoleManager.subscribe(this)
     }
 
     override fun disable() {
@@ -119,7 +123,7 @@ object ModuleHoleFiller : ClientModule("HoleFiller", Category.WORLD) {
     }
 
     @Suppress("unused")
-    private val targetUpdater = handler<SimulatedTickEvent> {
+    private val targetUpdater = handler<RotationUpdateEvent> {
         // all holes, if required 1x1 holes filtered out
         val holes = HoleTracker.holes.filter { !only1by1 || it.type == Hole.Type.ONE_ONE }
 
@@ -143,7 +147,7 @@ object ModuleHoleFiller : ClientModule("HoleFiller", Category.WORLD) {
             }
 
             // the range in which entities are considered as a target
-            val range = ceil(max(placer.range, placer.wallRange)).toInt().sq() + 10.0
+            val range = this.range.sq() + 10.0
             collectHolesSmart(range, holeContext, availableItems)
         }
 
@@ -152,7 +156,7 @@ object ModuleHoleFiller : ClientModule("HoleFiller", Category.WORLD) {
 
     private fun getAvailableItemsCount(): Int {
         var itemCount = 0
-        HOTBAR_SLOTS.forEach { slot ->
+        Slots.Hotbar.forEach { slot ->
             val block = slot.itemStack.getBlock() ?: return@forEach
             if (filter(block, blocks)) {
                 itemCount += slot.itemStack.count
@@ -170,9 +174,7 @@ object ModuleHoleFiller : ClientModule("HoleFiller", Category.WORLD) {
                 holeContext.selfInHole ||
                 !hole.positions.intersects(holeContext.selfRegion)
                 ) {
-                BlockPos.iterate(hole.positions.from, hole.positions.to).forEach {
-                    holeContext.blocks += it.toImmutable()
-                }
+                hole.positions.mapTo(holeContext.blocks) { it.toImmutable() }
             }
         }
     }
@@ -195,7 +197,7 @@ object ModuleHoleFiller : ClientModule("HoleFiller", Category.WORLD) {
                 found
             )
 
-            holeContext.blocks += found.sortedByDescending { it.rightDouble() }.map { it.left() }
+            found.sortedByDescending { it.rightDouble() }.mapTo(holeContext.blocks) { it.left() }
             if (remainingItems <= 0) {
                 return
             }
@@ -204,10 +206,10 @@ object ModuleHoleFiller : ClientModule("HoleFiller", Category.WORLD) {
 
     private fun iterateHoles(
         holeContext: HoleContext,
-        checkedHoles: HashSet<Hole>,
+        checkedHoles: MutableSet<Hole>,
         entity: Entity,
         remainingItems: Int,
-        found: HashSet<ObjectDoubleImmutablePair<BlockPos>>
+        found: MutableSet<ObjectDoubleImmutablePair<BlockPos>>
     ): Int {
         var remainingItems1 = remainingItems
         val region = Region.quadAround(entity.blockPos, fillArea, fillArea)
@@ -230,8 +232,8 @@ object ModuleHoleFiller : ClientModule("HoleFiller", Category.WORLD) {
             }
 
             checkedHoles += hole
-            BlockPos.iterate(hole.positions.from, hole.positions.to).forEach {
-                found += ObjectDoubleImmutablePair(it.toImmutable(), valid.rightDouble())
+            hole.positions.mapTo(found) {
+                ObjectDoubleImmutablePair(it.toImmutable(), valid.rightDouble())
             }
 
             if (remainingItems1 == 0 && !player.abilities.creativeMode) {

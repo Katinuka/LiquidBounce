@@ -1,7 +1,7 @@
 /*
  * This file is part of LiquidBounce (https://github.com/CCBlueX/LiquidBounce)
  *
- * Copyright (c) 2015 - 2024 CCBlueX
+ * Copyright (c) 2015 - 2025 CCBlueX
  *
  * LiquidBounce is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -43,7 +43,7 @@ import kotlin.math.max
  *
  * Detects and displays safe spots for Crystal PvP.
  */
-object ModuleHoleESP : ClientModule("HoleESP", Category.RENDER) {
+object ModuleHoleESP : ClientModule("HoleESP", Category.RENDER), HoleManagerSubscriber {
 
     private val modes = choices("Mode", GlowingPlane, arrayOf(BoxChoice, GlowingPlane))
 
@@ -56,8 +56,11 @@ object ModuleHoleESP : ClientModule("HoleESP", Category.RENDER) {
     private val color1by2 by color("1x2", Color4b(0x35bacc))
     private val color2by2 by color("2x2", Color4b(0xf7381b))
 
+    override fun horizontalDistance(): Int = horizontalDistance
+    override fun verticalDistance(): Int = verticalDistance
+
     override fun enable() {
-        HoleManager.subscribe(this, HoleManagerSubscriber({ horizontalDistance }, { verticalDistance }))
+        HoleManager.subscribe(this)
     }
 
     override fun disable() {
@@ -89,7 +92,7 @@ object ModuleHoleESP : ClientModule("HoleESP", Category.RENDER) {
                     }
 
                     val fade = calculateFade(positions.from)
-                    val baseColor = type.color().alpha(50).fade(fade)
+                    val baseColor = type.color().with(a = 50).fade(fade)
                     val box = positions.getBox()
                     withPositionRelativeToCamera(positions.from.toVec3d()) {
                         withColor(baseColor) {
@@ -97,7 +100,7 @@ object ModuleHoleESP : ClientModule("HoleESP", Category.RENDER) {
                         }
 
                         if (outline) {
-                            val outlineColor = type.color().alpha(100).fade(fade)
+                            val outlineColor = type.color().with(a = 100).fade(fade)
                             withColor(outlineColor) {
                                 drawOutlinedBox(box)
                             }
@@ -137,8 +140,8 @@ object ModuleHoleESP : ClientModule("HoleESP", Category.RENDER) {
                         }
 
                         val fade = calculateFade(positions.from)
-                        val baseColor = type.color().alpha(50).fade(fade)
-                        val transparentColor = baseColor.alpha(0)
+                        val baseColor = type.color().with(a = 50).fade(fade)
+                        val transparentColor = baseColor.with(a = 0)
                         val box = positions.getBox()
                         withPositionRelativeToCamera(positions.from.toVec3d()) {
                             withColor(baseColor) {
@@ -146,7 +149,7 @@ object ModuleHoleESP : ClientModule("HoleESP", Category.RENDER) {
                             }
 
                             if (outline) {
-                                val outlineColor = type.color().alpha(100).fade(fade)
+                                val outlineColor = type.color().with(a = 100).fade(fade)
                                 withColor(outlineColor) {
                                     drawSideBox(box, Direction.DOWN, onlyOutline = true)
                                 }
@@ -169,8 +172,9 @@ object ModuleHoleESP : ClientModule("HoleESP", Category.RENDER) {
     }
 
     private fun calculateFade(pos: BlockPos): Float {
-        if (distanceFade == 0f)
+        if (distanceFade == 0f) {
             return 1f
+        }
 
         val verticalDistanceFraction = (player.pos.y - pos.y) / verticalDistance
         val horizontalDistanceFraction =

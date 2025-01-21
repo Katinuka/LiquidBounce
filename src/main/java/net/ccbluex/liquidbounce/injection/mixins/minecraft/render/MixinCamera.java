@@ -1,7 +1,7 @@
 /*
  * This file is part of LiquidBounce (https://github.com/CCBlueX/LiquidBounce)
  *
- * Copyright (c) 2015 - 2024 CCBlueX
+ * Copyright (c) 2015 - 2025 CCBlueX
  *
  * LiquidBounce is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -19,6 +19,7 @@
 package net.ccbluex.liquidbounce.injection.mixins.minecraft.render;
 
 import com.llamalad7.mixinextras.injector.ModifyExpressionValue;
+import net.ccbluex.liquidbounce.features.module.modules.combat.aimbot.ModuleDroneControl;
 import net.ccbluex.liquidbounce.features.module.modules.render.*;
 import net.ccbluex.liquidbounce.utils.aiming.AimPlan;
 import net.ccbluex.liquidbounce.utils.aiming.RotationManager;
@@ -26,6 +27,7 @@ import net.minecraft.client.render.Camera;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.LivingEntity;
 import net.minecraft.util.math.MathHelper;
+import net.minecraft.util.math.Vec3d;
 import net.minecraft.world.BlockView;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
@@ -54,9 +56,13 @@ public abstract class MixinCamera {
     @Shadow
     protected abstract void moveBy(float f, float g, float h);
 
+    @Shadow
+    public abstract void setPos(Vec3d pos);
+
     @Inject(method = "update", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/render/Camera;setPos(DDD)V", shift = At.Shift.AFTER), cancellable = true)
     private void modifyCameraOrientation(BlockView area, Entity focusedEntity, boolean thirdPerson, boolean inverseView, float tickDelta, CallbackInfo ci) {
         var freeLook = ModuleFreeLook.INSTANCE.getRunning();
+        var freeLockInvertedView = ModuleFreeLook.INSTANCE.isInvertedView();
         var qps = ModuleQuickPerspectiveSwap.INSTANCE.getRunning();
         var rearView = qps && ModuleQuickPerspectiveSwap.INSTANCE.getRearView() && !freeLook && !thirdPerson;
 
@@ -64,11 +70,18 @@ public abstract class MixinCamera {
             if (!rearView) this.thirdPerson = true;
 
             if (freeLook) {
-                setRotation(ModuleFreeLook.INSTANCE.getCameraYaw(), ModuleFreeLook.INSTANCE.getCameraPitch());
+                var cameraYaw = ModuleFreeLook.INSTANCE.getCameraYaw();
+                var cameraPitch = ModuleFreeLook.INSTANCE.getCameraPitch();
+
+                if (freeLockInvertedView) {
+                    setRotation(cameraYaw + 180, -cameraPitch);
+                } else {
+                    setRotation(cameraYaw, cameraPitch);
+                }
             }
 
             if (qps) {
-                setRotation(yaw + 180.0f, freeLook ? pitch : -pitch);
+                setRotation(yaw + 180.0f, freeLook && !freeLockInvertedView ? pitch : -pitch);
             }
 
             float scale = focusedEntity instanceof LivingEntity livingEntity ? livingEntity.getScale() : 1.0F;
@@ -80,6 +93,12 @@ public abstract class MixinCamera {
 
             ci.cancel();
             return;
+        }
+        var screen = ModuleDroneControl.INSTANCE.getScreen();
+
+        if (screen != null) {
+            this.setPos(screen.getCameraPos());
+            this.setRotation(screen.getCameraRotation().x, screen.getCameraRotation().y);
         }
 
         AimPlan aimPlan = RotationManager.INSTANCE.getWorkingAimPlan();

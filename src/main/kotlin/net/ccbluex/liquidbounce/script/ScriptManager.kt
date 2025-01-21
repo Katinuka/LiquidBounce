@@ -1,7 +1,7 @@
 /*
  * This file is part of LiquidBounce (https://github.com/CCBlueX/LiquidBounce)
  *
- * Copyright (c) 2015 - 2024 CCBlueX
+ * Copyright (c) 2015 - 2025 CCBlueX
  *
  * LiquidBounce is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -18,7 +18,9 @@
  */
 package net.ccbluex.liquidbounce.script
 
+import com.mojang.blaze3d.systems.RenderSystem
 import net.ccbluex.liquidbounce.config.ConfigSystem
+import net.ccbluex.liquidbounce.features.module.modules.render.ModuleClickGui
 import net.ccbluex.liquidbounce.utils.client.logger
 import org.graalvm.polyglot.Engine
 import org.graalvm.polyglot.Source
@@ -48,10 +50,16 @@ object ScriptManager {
     }
 
     init {
-        // Initialize the script engine and log its version and supported languages.
-        val engine = Engine.create()
-        logger.info("[ScriptAPI] Engine Version: ${engine.version}, " +
-            "Supported languages: [ ${engine.languages.keys.joinToString(", ")} ]")
+        try {
+            // Initialize the script engine and log its version and supported languages.
+            val engine = Engine.create()
+            logger.info(
+                "[ScriptAPI] Engine Version: ${engine.version}, " +
+                    "Supported languages: [ ${engine.languages.keys.joinToString(", ")} ]"
+            )
+        } catch (e: Exception) {
+            logger.error("Failed to initialize the script engine.", e)
+        }
     }
 
     /**
@@ -59,13 +67,13 @@ object ScriptManager {
      * and directories containing a main script file. It then loads and enables all found scripts.
      */
     fun loadAll() {
-        root.listFiles {
-            file -> Source.findLanguage(file) != null || file.isDirectory
+        root.listFiles { file ->
+            Source.findLanguage(file) != null || file.isDirectory
         }?.forEach { file ->
             if (file.isDirectory) {
                 // If a directory is found, look for a main script file inside it.
-                val mainFile = file.listFiles {
-                        dirFile -> dirFile.nameWithoutExtension == "main" && Source.findLanguage(dirFile) != null
+                val mainFile = file.listFiles { dirFile ->
+                    dirFile.nameWithoutExtension == "main" && Source.findLanguage(dirFile) != null
                 }?.firstOrNull()
 
                 if (mainFile != null) {
@@ -88,6 +96,7 @@ object ScriptManager {
      */
     fun unloadAll() {
         scripts.forEach(PolyglotScript::disable)
+        scripts.forEach(PolyglotScript::close)
         scripts.clear()
     }
 
@@ -111,8 +120,12 @@ object ScriptManager {
      * @param language The language of the script. If not specified, it is inferred from the file.
      * @return The loaded script.
      */
-    fun loadScript(file: File, language: String = Source.findLanguage(file)): PolyglotScript {
-        val script = PolyglotScript(language, file)
+    fun loadScript(
+        file: File,
+        language: String = Source.findLanguage(file),
+        debugOptions: ScriptDebugOptions = ScriptDebugOptions()
+    ): PolyglotScript {
+        val script = PolyglotScript(language, file, debugOptions)
         script.initScript()
 
         scripts += script
@@ -126,6 +139,7 @@ object ScriptManager {
      */
     fun unloadScript(script: PolyglotScript) {
         script.disable()
+        script.close()
         scripts.remove(script)
     }
 
@@ -134,6 +148,11 @@ object ScriptManager {
      */
     fun enableAll() {
         scripts.forEach(PolyglotScript::enable)
+
+        // Reload the ClickGUI to update the module list.
+        RenderSystem.recordRenderCall {
+            ModuleClickGui.reloadView()
+        }
     }
 
     /**
@@ -148,7 +167,15 @@ object ScriptManager {
      * directory, and then enables them. It logs a message upon successful completion.
      */
     fun reload() {
-        unloadAll()
+        // Unload
+        try {
+            disableAll()
+            unloadAll()
+        } catch (e: Exception) {
+            logger.error("Failed to unload scripts.", e)
+        }
+
+        // Load
         loadAll()
         enableAll()
 

@@ -1,7 +1,7 @@
 /*
  * This file is part of LiquidBounce (https://github.com/CCBlueX/LiquidBounce)
  *
- * Copyright (c) 2015 - 2024 CCBlueX
+ * Copyright (c) 2015 - 2025 CCBlueX
  *
  * LiquidBounce is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -63,6 +63,7 @@ object ModuleStorageESP : ClientModule("StorageESP", Category.RENDER, aliases = 
     private val dispenserColor by color("Dispenser", Color4b(Color.LIGHT_GRAY))
     private val hopperColor by color("Hopper", Color4b(Color.GRAY))
     private val shulkerColor by color("ShulkerBox", Color4b(Color(0x6e, 0x4d, 0x6e).brighter()))
+    private val potColor by color("Pot", Color4b(209, 134, 0))
 
     private val requiresChestStealer by boolean("RequiresChestStealer", false)
 
@@ -90,8 +91,8 @@ object ModuleStorageESP : ClientModule("StorageESP", Category.RENDER, aliases = 
             renderEnvironmentForWorld(matrixStack) {
                 BoxRenderer.drawWith(this) {
                     for ((pos, box, color) in queuedBoxes) {
-                        val baseColor = color.alpha(50)
-                        val outlineColor = color.alpha(100)
+                        val baseColor = color.with(a = 50)
+                        val outlineColor = color.with(a = 100)
 
                         withPositionRelativeToCamera(pos) {
                             drawBox(box, baseColor, outlineColor.takeIf { outline })
@@ -213,40 +214,38 @@ object ModuleStorageESP : ClientModule("StorageESP", Category.RENDER, aliases = 
             is HopperBlockEntity -> ChestType.HOPPER
             is ShulkerBoxBlockEntity -> ChestType.SHULKER_BOX
             is BarrelBlockEntity -> ChestType.CHEST
+            is DecoratedPotBlockEntity -> ChestType.POT
             else -> null
         }
     }
 
     enum class ChestType {
         CHEST {
-            override val color: Color4b
-                get() = chestColor
+            override val color get() = chestColor
 
             override fun shouldRender(pos: BlockPos) = pos !in FeatureChestAura.interactedBlocksSet
         },
         ENDER_CHEST {
-            override val color: Color4b
-                get() = enderChestColor
+            override val color get() = enderChestColor
 
             override fun shouldRender(pos: BlockPos) = pos !in FeatureChestAura.interactedBlocksSet
         },
         FURNACE {
-            override val color: Color4b
-                get() = furnaceColor
+            override val color get() = furnaceColor
         },
         DISPENSER {
-            override val color: Color4b
-                get() = dispenserColor
+            override val color get() = dispenserColor
         },
         HOPPER {
-            override val color: Color4b
-                get() = hopperColor
+            override val color get() = hopperColor
         },
         SHULKER_BOX {
-            override val color: Color4b
-                get() = shulkerColor
+            override val color get() = shulkerColor
 
             override fun shouldRender(pos: BlockPos) = pos !in FeatureChestAura.interactedBlocksSet
+        },
+        POT {
+            override val color get() = potColor
         };
 
         abstract val color: Color4b

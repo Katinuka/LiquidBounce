@@ -1,7 +1,7 @@
 /*
  * This file is part of LiquidBounce (https://github.com/CCBlueX/LiquidBounce)
  *
- * Copyright (c) 2015 - 2024 CCBlueX
+ * Copyright (c) 2015 - 2025 CCBlueX
  *
  * LiquidBounce is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -28,8 +28,7 @@ data class Hole(
     val blockInvalidators: Region = Region(positions.from, positions.to.up(2)),
 ) : Comparable<Hole> {
 
-    override fun compareTo(other: Hole): Int =
-        compareValuesBy(this, other) { it.positions.from }
+    override fun compareTo(other: Hole): Int = this.positions.from.compareTo(other.positions.from)
 
     operator fun contains(pos: BlockPos): Boolean = pos in positions
 

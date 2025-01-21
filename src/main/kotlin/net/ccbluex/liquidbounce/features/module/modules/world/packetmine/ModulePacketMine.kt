@@ -1,7 +1,7 @@
 /*
  * This file is part of LiquidBounce (https://github.com/CCBlueX/LiquidBounce)
  *
- * Copyright (c) 2015 - 2024 CCBlueX
+ * Copyright (c) 2015 - 2025 CCBlueX
  *
  * LiquidBounce is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -34,14 +34,16 @@ import net.ccbluex.liquidbounce.features.module.modules.world.packetmine.mode.Im
 import net.ccbluex.liquidbounce.features.module.modules.world.packetmine.mode.NormalMineMode
 import net.ccbluex.liquidbounce.render.EMPTY_BOX
 import net.ccbluex.liquidbounce.render.engine.Color4b
-import net.ccbluex.liquidbounce.utils.aiming.*
+import net.ccbluex.liquidbounce.utils.aiming.Rotation
+import net.ccbluex.liquidbounce.utils.aiming.RotationManager
+import net.ccbluex.liquidbounce.utils.aiming.RotationsConfigurable
+import net.ccbluex.liquidbounce.utils.aiming.raytraceBlock
 import net.ccbluex.liquidbounce.utils.block.SwingMode
 import net.ccbluex.liquidbounce.utils.block.getCenterDistanceSquaredEyes
 import net.ccbluex.liquidbounce.utils.block.getState
 import net.ccbluex.liquidbounce.utils.block.outlineBox
 import net.ccbluex.liquidbounce.utils.client.Chronometer
 import net.ccbluex.liquidbounce.utils.client.SilentHotbar
-import net.ccbluex.liquidbounce.utils.entity.eyes
 import net.ccbluex.liquidbounce.utils.item.getEnchantment
 import net.ccbluex.liquidbounce.utils.kotlin.Priority
 import net.ccbluex.liquidbounce.utils.math.sq
@@ -101,6 +103,8 @@ object ModulePacketMine : ClientModule("PacketMine", Category.WORLD) {
     private val rotationMode by enumChoice("Rotate", RotationMode.NEVER)
     private val rotationsConfigurable = tree(RotationsConfigurable(this))
     private val ignoreOpenInventory by boolean("IgnoreOpenInventory", true)
+    val breakDamage by float("BreakDamage", 1f, 0f..2f)
+    private val selectDelay by int("SelectDelay", 200, 0..400, "ms")
 
     private val targetRenderer = tree(
         PlacementRenderer(
@@ -144,6 +148,7 @@ object ModulePacketMine : ClientModule("PacketMine", Category.WORLD) {
     }
 
     override fun disable() {
+        targetRenderer.clearSilently()
         targetPos = null
     }
 
@@ -164,7 +169,7 @@ object ModulePacketMine : ClientModule("PacketMine", Category.WORLD) {
     private fun handleRotating(blockPos: BlockPos, state: BlockState): Rotation? {
         val rotate = rotationMode.shouldRotate()
 
-        val eyes = player.eyes
+        val eyes = player.eyePos
         val raytrace = raytraceBlock(
             eyes,
             blockPos,
@@ -230,7 +235,7 @@ object ModulePacketMine : ClientModule("PacketMine", Category.WORLD) {
             startBreaking(slot, blockPos, direction)
         } else if (mode.activeChoice.shouldUpdate(blockPos, direction, slot)) {
             updateBreakingProgress(blockPos, state, slot)
-            if (progress >= 1f && !finished) {
+            if (progress >= breakDamage && !finished) {
                 mode.activeChoice.finish(blockPos, direction)
             }
         }
@@ -251,7 +256,13 @@ object ModulePacketMine : ClientModule("PacketMine", Category.WORLD) {
     ) {
         progress += switchMode.getBlockBreakingDelta(blockPos, state, slot?.second())
         switch(slot, blockPos)
-        val f = progress.toDouble().coerceIn(0.0..1.0) / 2
+        val f = if (breakDamage > 0f) {
+            val breakDamageD = breakDamage.toDouble()
+            progress.toDouble().coerceIn(0.0..breakDamageD) / breakDamageD / 2.0
+        } else {
+            0.5
+        }
+
         val box = blockPos.outlineBox
         val lengthX = box.lengthX
         val lengthY = box.lengthY
@@ -289,7 +300,7 @@ object ModulePacketMine : ClientModule("PacketMine", Category.WORLD) {
 
         val isLeftClick = event.button == 0
         // without adding a little delay before being able to unselect / select again, selecting would be impossible
-        val hasTimePassed = chronometer.hasElapsed(200)
+        val hasTimePassed = chronometer.hasElapsed(selectDelay.toLong())
         val hitResult = mc.crosshairTarget
         if (!isLeftClick || !hasTimePassed || hitResult == null || hitResult !is BlockHitResult) {
             return@handler
@@ -329,13 +340,13 @@ object ModulePacketMine : ClientModule("PacketMine", Category.WORLD) {
 
         when (val packet = it.packet) {
             is BlockUpdateS2CPacket -> {
-                mc.renderTaskQueue.add(Runnable { updatePosOnChange(packet.pos, packet.state) })
+                mc.renderTaskQueue.add { updatePosOnChange(packet.pos, packet.state) }
             }
 
             is ChunkDeltaUpdateS2CPacket -> {
-                mc.renderTaskQueue.add(Runnable {
+                mc.renderTaskQueue.add {
                     packet.visitUpdates { pos, state -> updatePosOnChange(pos, state) }
-                })
+                }
             }
         }
     }
@@ -397,7 +408,7 @@ object ModulePacketMine : ClientModule("PacketMine", Category.WORLD) {
         val enchantmentLevel = stack.getEnchantment(Enchantments.EFFICIENCY)
         if (speed > 1f && enchantmentLevel != 0) {
             /**
-             * See: [EntityAttributes.PLAYER_MINING_EFFICIENCY]
+             * See: [EntityAttributes.MINING_EFFICIENCY]
              */
             val enchantmentAddition = enchantmentLevel.sq() + 1f
             speed += enchantmentAddition.coerceIn(0f..1024f)
@@ -419,9 +430,9 @@ object ModulePacketMine : ClientModule("PacketMine", Category.WORLD) {
             speed *= miningFatigueMultiplier
         }
 
-        speed *= player.getAttributeValue(EntityAttributes.PLAYER_BLOCK_BREAK_SPEED).toFloat()
+        speed *= player.getAttributeValue(EntityAttributes.BLOCK_BREAK_SPEED).toFloat()
         if (player.isSubmergedIn(FluidTags.WATER)) {
-            speed *= player.getAttributeInstance(EntityAttributes.PLAYER_SUBMERGED_MINING_SPEED)!!.value.toFloat()
+            speed *= player.getAttributeInstance(EntityAttributes.SUBMERGED_MINING_SPEED)!!.value.toFloat()
         }
 
         if (!player.isOnGround) {
@@ -448,11 +459,12 @@ object ModulePacketMine : ClientModule("PacketMine", Category.WORLD) {
         NEVER("Never", false, false, false);
 
         fun shouldRotate(): Boolean {
-            return !started && start || end && progress >= 1f || progress < 1f && started && between
+            return !started && start || end && progress >= breakDamage || progress < breakDamage && started && between
         }
 
     }
 
+    @Suppress("unused")
     enum class ToolMode(override val choiceName: String, val end: Boolean, val between: Boolean) : NamedChoice {
 
         ON_STOP("OnStop", true, false),
@@ -460,7 +472,7 @@ object ModulePacketMine : ClientModule("PacketMine", Category.WORLD) {
         NEVER("Never", false, false);
 
         fun shouldSwitch(): Boolean {
-            return between || end && progress >= 1f
+            return between || end && progress >= breakDamage
         }
 
         fun getBlockBreakingDelta(pos: BlockPos, state: BlockState, itemStack: ItemStack?): Float {
@@ -476,7 +488,9 @@ object ModulePacketMine : ClientModule("PacketMine", Category.WORLD) {
                 return null
             }
 
-            return ModuleAutoTool.getTool(player.inventory, state)
+            return ModuleAutoTool.toolSelector.activeChoice.getTool(state)?.let {
+                IntObjectImmutablePair(it.hotbarSlot, it.itemStack)
+            }
         }
 
     }

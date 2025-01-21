@@ -1,7 +1,7 @@
 /*
  * This file is part of LiquidBounce (https://github.com/CCBlueX/LiquidBounce)
  *
- * Copyright (c) 2015 - 2024 CCBlueX
+ * Copyright (c) 2015 - 2025 CCBlueX
  *
  * LiquidBounce is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -23,7 +23,6 @@ import net.ccbluex.liquidbounce.integration.theme.Theme
 import net.ccbluex.liquidbounce.integration.theme.ThemeManager
 import net.ccbluex.liquidbounce.utils.client.asText
 import net.ccbluex.liquidbounce.utils.client.mc
-import net.minecraft.client.gui.DrawContext
 import net.minecraft.client.gui.screen.Screen
 
 class VrScreen(
@@ -39,13 +38,6 @@ class VrScreen(
         IntegrationListener.virtualClose()
         mc.mouse.lockCursor()
         super.close()
-    }
-
-    override fun render(context: DrawContext, mouseX: Int, mouseY: Int, delta: Float) {
-        // Only render the background if the world is not null, otherwise the html should draw the background.
-        if (mc.world == null) {
-            this.renderBackground(context, mouseX, mouseY, delta)
-        }
     }
 
     override fun shouldPause(): Boolean {

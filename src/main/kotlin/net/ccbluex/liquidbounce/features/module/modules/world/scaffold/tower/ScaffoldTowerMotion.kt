@@ -1,7 +1,7 @@
 /*
  * This file is part of LiquidBounce (https://github.com/CCBlueX/LiquidBounce)
  *
- * Copyright (c) 2015 - 2024 CCBlueX
+ * Copyright (c) 2015 - 2025 CCBlueX
  *
  * LiquidBounce is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -45,11 +45,13 @@ object ScaffoldTowerMotion : Choice("Motion") {
     override val parent: ChoiceConfigurable<Choice>
         get() = towerMode
 
-    val jumpEvent = handler<PlayerJumpEvent> {
+    @Suppress("unused")
+    private val jumpHandler = handler<PlayerJumpEvent> {
         jumpOffPosition = player.y
     }
 
-    val repeatable = tickHandler {
+    @Suppress("unused")
+    private val tickHandler = tickHandler {
         if (!mc.options.jumpKey.isPressed || ModuleScaffold.blockCount <= 0 || !isBlockBelow) {
             jumpOffPosition = Double.NaN
             return@tickHandler

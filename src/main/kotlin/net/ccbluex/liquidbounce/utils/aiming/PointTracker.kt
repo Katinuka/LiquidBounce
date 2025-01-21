@@ -1,7 +1,7 @@
 /*
  * This file is part of LiquidBounce (https://github.com/CCBlueX/LiquidBounce)
  *
- * Copyright (c) 2015 - 2024 CCBlueX
+ * Copyright (c) 2015 - 2025 CCBlueX
  *
  * LiquidBounce is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -22,10 +22,13 @@ import net.ccbluex.liquidbounce.config.types.Configurable
 import net.ccbluex.liquidbounce.config.types.NamedChoice
 import net.ccbluex.liquidbounce.config.types.ToggleableConfigurable
 import net.ccbluex.liquidbounce.event.EventListener
-import net.ccbluex.liquidbounce.utils.client.chat
+import net.ccbluex.liquidbounce.utils.aiming.PointTracker.PreferredBoxPart.entries
 import net.ccbluex.liquidbounce.utils.client.player
 import net.ccbluex.liquidbounce.utils.combat.ClickScheduler.Companion.RNG
-import net.ccbluex.liquidbounce.utils.entity.*
+import net.ccbluex.liquidbounce.utils.entity.box
+import net.ccbluex.liquidbounce.utils.entity.prevPos
+import net.ccbluex.liquidbounce.utils.entity.rotation
+import net.ccbluex.liquidbounce.utils.entity.sqrtSpeed
 import net.ccbluex.liquidbounce.utils.kotlin.random
 import net.ccbluex.liquidbounce.utils.math.plus
 import net.minecraft.entity.LivingEntity
@@ -72,12 +75,19 @@ class PointTracker(
 
         val yawFactor by floatRange("YawOffset", 0f..0f, 0.0f..1.0f)
         val pitchFactor by floatRange("PitchOffset", 0f..0f, 0.0f..1.0f)
-        val dynamicYawFactor by float("DynamicYawFactor", 0f, 0f..10f, "x")
-        val dynamicPitchFactor by float("DynamicPitchFactor", 0f, 0f..10f, "x")
-        val dynamicHurtTime by int("DynamicHurtTime", 10, 0..10)
         val chance by int("Chance", 100, 0..100, "%")
         val speed by floatRange("Speed", 0.1f..0.2f, 0.01f..1f)
-        val tolerance by float("Tolerance", 0.1f, 0.01f..0.1f)
+        val tolerance by float("Tolerance", 0.05f, 0.01f..0.1f)
+
+        private inner class Dynamic : ToggleableConfigurable(this, "Dynamic", false) {
+            val hurtTime by int("HurtTime", 10, 0..10)
+            val yawFactor by float("YawFactor", 0f, 0f..10f, "x")
+            val pitchFactor by float("PitchFactor", 0f, 0f..10f, "x")
+            val speed by floatRange("Speed", 0.5f..0.75f, 0.01f..1f)
+            val tolerance by float("Tolerance", 0.1f, 0.01f..0.1f)
+        }
+
+        private val dynamic = tree(Dynamic())
 
         private val random = SecureRandom()
 
@@ -93,24 +103,30 @@ class PointTracker(
                 abs(vec1.z - vec2.z) < tolerance
         }
 
+        @Suppress("CognitiveComplexMethod")
         fun updateGaussianOffset(entity: Any?) {
-            val dynamicCheck = entity is LivingEntity && entity.hurtTime >= dynamicHurtTime
+            val dynamicCheck = dynamic.enabled && entity is LivingEntity && entity.hurtTime >= dynamic.hurtTime
 
             val yawFactor =
-                if (dynamicCheck && dynamicYawFactor > 0f) {
-                    (yawFactor.random() + player.sqrtSpeed * dynamicYawFactor)
+                if (dynamicCheck && dynamic.yawFactor > 0f) {
+                    (yawFactor.random() + player.sqrtSpeed * dynamic.yawFactor)
                 } else {
                     yawFactor.random()
                 }
 
             val pitchFactor =
-                if (dynamicCheck && dynamicPitchFactor > 0f) {
-                    (pitchFactor.random() + player.sqrtSpeed * dynamicPitchFactor)
+                if (dynamicCheck && dynamic.pitchFactor > 0f) {
+                    (pitchFactor.random() + player.sqrtSpeed * dynamic.pitchFactor)
                 } else {
                     pitchFactor.random()
                 }
 
-            if (gaussianHasReachedTarget(currentOffset, targetOffset, tolerance)) {
+            if (gaussianHasReachedTarget(
+                    currentOffset,
+                    targetOffset,
+                    if (dynamicCheck) dynamic.tolerance else tolerance
+                )
+            ) {
                 if (random.nextInt(100) <= chance) {
                     targetOffset = Vec3d(
                         random.nextGaussian(MEAN_X, STDDEV_X) * yawFactor,
@@ -120,9 +136,21 @@ class PointTracker(
                 }
             } else {
                 currentOffset = Vec3d(
-                    interpolate(currentOffset.x, targetOffset.x, speed.random()),
-                    interpolate(currentOffset.y, targetOffset.y, speed.random()),
-                    interpolate(currentOffset.z, targetOffset.z, speed.random())
+                    interpolate(
+                        currentOffset.x,
+                        targetOffset.x,
+                        if (dynamicCheck) dynamic.speed.random() else speed.random()
+                    ),
+                    interpolate(
+                        currentOffset.y,
+                        targetOffset.y,
+                        if (dynamicCheck) dynamic.speed.random() else speed.random()
+                    ),
+                    interpolate(
+                        currentOffset.z,
+                        targetOffset.z,
+                        if (dynamicCheck) dynamic.speed.random() else speed.random()
+                    )
                 )
             }
         }
@@ -235,7 +263,7 @@ class PointTracker(
      */
     fun gatherPoint(entity: LivingEntity, situation: AimSituation): Point {
         val playerPosition = player.pos
-        val playerEyes = player.eyes
+        val playerEyes = player.eyePos
         val currentRotation = RotationManager.currentRotation ?: player.rotation
         val positionDifference = playerPosition.y - entity.pos.y
 

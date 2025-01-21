@@ -1,7 +1,7 @@
 /*
  * This file is part of LiquidBounce (https://github.com/CCBlueX/LiquidBounce)
  *
- * Copyright (c) 2015 - 2024 CCBlueX
+ * Copyright (c) 2015 - 2025 CCBlueX
  *
  * LiquidBounce is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -34,8 +34,13 @@ import org.lwjgl.glfw.GLFW
  */
 object InputTracker : EventListener {
 
-    // Tracks the state of each mouse button (pressed or not).
-    private val mouseStates = mutableMapOf<Int, Boolean>()
+    /**
+     * Tracks the state of each mouse button.
+     *
+     * [GLFW.GLFW_RELEASE], [GLFW.GLFW_PRESS] or [GLFW.GLFW_REPEAT]
+     * @see GLFW
+     */
+    private val mouseStates = IntArray(32)
 
     /**
      * Extension property that checks if a key binding is pressed on either the keyboard or mouse.
@@ -68,7 +73,7 @@ object InputTracker : EventListener {
      */
     @Suppress("unused")
     private val handleMouseAction = handler<MouseButtonEvent> {
-        mouseStates[it.button] = it.action == GLFW.GLFW_PRESS
+        mouseStates[it.button] = it.action
     }
 
     /**
@@ -77,5 +82,5 @@ object InputTracker : EventListener {
      * @param button The GLFW code of the mouse button.
      * @return True if the mouse button is pressed, false otherwise.
      */
-    fun isMouseButtonPressed(button: Int): Boolean = mouseStates.getOrDefault(button, false)
+    fun isMouseButtonPressed(button: Int): Boolean = mouseStates[button] == GLFW.GLFW_PRESS
 }

@@ -1,7 +1,7 @@
 /*
  * This file is part of LiquidBounce (https://github.com/CCBlueX/LiquidBounce)
  *
- * Copyright (c) 2015-2024 CCBlueX
+ * Copyright (c) 2015 - 2025 CCBlueX
  *
  * LiquidBounce is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -26,7 +26,7 @@ import net.ccbluex.liquidbounce.event.handler
 import net.ccbluex.liquidbounce.event.tickHandler
 import net.ccbluex.liquidbounce.features.module.modules.movement.speed.modes.SpeedBHopBase
 import net.ccbluex.liquidbounce.utils.entity.moving
-import net.ccbluex.liquidbounce.utils.entity.strafe
+import net.ccbluex.liquidbounce.utils.entity.withStrafe
 import net.minecraft.entity.effect.StatusEffects
 import net.minecraft.network.packet.c2s.play.PlayerMoveC2SPacket
 import net.minecraft.util.shape.VoxelShapes
@@ -41,7 +41,7 @@ class SpeedVulcanGround286(override val parent: ChoiceConfigurable<*>) : SpeedBH
 
     @Suppress("unused")
     private val afterJumpHandler = tickHandler {
-        if (player.moving && collidesBottomVertical()) {
+        if (player.moving && collidesBottomVertical() && !mc.options.jumpKey.isPressed) {
             val speedEffect = player.getStatusEffect(StatusEffects.SPEED)
             val isAffectedBySpeed = speedEffect != null && speedEffect.amplifier > 0
             val isMovingSideways = player.input.movementSideways != 0f
@@ -52,13 +52,14 @@ class SpeedVulcanGround286(override val parent: ChoiceConfigurable<*>) : SpeedBH
                 else -> 0.42
             }
 
-            player.strafe(speed = strafe)
+            player.velocity = player.velocity.withStrafe(speed = strafe)
             player.velocity.y = 0.005
         }
     }
 
-    val packetHandler = handler<PacketEvent> { event ->
-        if (event.packet is PlayerMoveC2SPacket && collidesBottomVertical()) {
+    @Suppress("unused")
+    private val packetHandler = handler<PacketEvent> { event ->
+        if (event.packet is PlayerMoveC2SPacket && collidesBottomVertical() && !mc.options.jumpKey.isPressed) {
             event.packet.y += 0.005
         }
     }
@@ -68,8 +69,12 @@ class SpeedVulcanGround286(override val parent: ChoiceConfigurable<*>) : SpeedBH
             shape != VoxelShapes.empty()
         }
 
-    val jumpEvent = handler<PlayerJumpEvent> { event ->
-        event.cancelEvent()
+    @Suppress("unused")
+    private val jumpEvent = handler<PlayerJumpEvent> { event ->
+        if (!mc.options.jumpKey.isPressed) {
+            event.cancelEvent()
+        }
     }
+
 }
 

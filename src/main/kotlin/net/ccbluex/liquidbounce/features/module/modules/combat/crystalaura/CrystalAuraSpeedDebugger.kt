@@ -1,7 +1,7 @@
 /*
  * This file is part of LiquidBounce (https://github.com/CCBlueX/LiquidBounce)
  *
- * Copyright (c) 2015-2024 CCBlueX
+ * Copyright (c) 2015 - 2025 CCBlueX
  *
  * LiquidBounce is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -28,10 +28,10 @@ import java.util.concurrent.ConcurrentLinkedDeque
  */
 object CrystalAuraSpeedDebugger : CrystalPostAttackTracker() {
 
-    private var cps = ConcurrentLinkedDeque<Long>()
+    private val cps = ConcurrentLinkedDeque<Long>()
 
     @Suppress("unused")
-    val repeatable1 = tickHandler {
+    val tickHandler = tickHandler {
         val currentTime = System.currentTimeMillis()
         val cpsTime = currentTime - 1000L
         while (cps.isNotEmpty()) {

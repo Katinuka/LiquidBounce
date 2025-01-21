@@ -1,7 +1,7 @@
 /*
  * This file is part of LiquidBounce (https://github.com/CCBlueX/LiquidBounce)
  *
- * Copyright (c) 2015 - 2024 CCBlueX
+ * Copyright (c) 2015 - 2025 CCBlueX
  *
  * LiquidBounce is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -63,7 +63,7 @@ open class PlacementRenderer(
     val outTime by int("OutTime", 500, 0..5000, "ms")
 
     private val colorSetting by color("Color", defaultColor)
-    private val outlineColorSetting by color("OutlineColor", defaultColor.alpha(255))
+    private val outlineColorSetting by color("OutlineColor", defaultColor.with(a = 255))
 
     /**
      * The [PlacementRenderHandler]s managed by this renderer.
@@ -164,12 +164,18 @@ open class PlacementRenderer(
      * Performed on all handlers in this renderer.
      */
     fun clearSilently() {
+        if (!enabled) {
+            disable()
+        }
+
         placementRenderHandlers.values.forEach { it.clearSilently() }
         outAnimationsFinished = false
     }
 
     override fun disable() {
-        placementRenderHandlers.values.forEach { it.clear() }
+        if (!enabled) {
+            placementRenderHandlers.values.forEach { it.clear() }
+        }
     }
 
     @Suppress("unused")
