@@ -1,7 +1,7 @@
 /*
  * This file is part of LiquidBounce (https://github.com/CCBlueX/LiquidBounce)
  *
- * Copyright (c) 2015 - 2025 CCBlueX
+ * Copyright (c) 2015 - 2024 CCBlueX
  *
  * LiquidBounce is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -20,6 +20,10 @@ package net.ccbluex.liquidbounce.features.module.modules.player.autoshop.seriali
 
 import net.ccbluex.liquidbounce.features.module.modules.player.autoshop.*
 
+/**
+ * Calculates the values of condition nodes based on the [items] the player has.
+ * This is not thread-safe.
+ */
 object ConditionCalculator {
     private val items = mutableMapOf<String, Int>()
     private val stack = mutableListOf<Pair<ConditionNode, Boolean>>()
@@ -31,6 +35,10 @@ object ConditionCalculator {
         return this
     }
 
+    /**
+     * Checks if the given item meets the conditions defined by the root node.
+     * Uses Depth-First Search (DFS)
+     */
     fun process(currentItem: String, root: ConditionNode?) : Boolean {
         if (currentItem.isItemWithTiers() && hasBetterTierItem(currentItem, items)) {
             return false
@@ -46,9 +54,9 @@ object ConditionCalculator {
             val (currentNode, isVisited) = stack.removeLast()
 
             when (currentNode) {
-                is ItemConditionNode -> processItemConditionNode(currentNode)
-                is AllConditionNode -> processAllConditionNode(currentNode, isVisited)
-                is AnyConditionNode -> processAnyConditionNode(currentNode, isVisited)
+                is ItemNode -> processItemNode(currentNode)
+                is AllNode -> processAllNode(currentNode, isVisited)
+                is AnyNode -> processAnyNode(currentNode, isVisited)
             }
         }
 
@@ -57,7 +65,26 @@ object ConditionCalculator {
         return result
     }
 
-    private fun processItemConditionNode(currentNode: ItemConditionNode) {
+    /**
+     * Evaluates whether the provided item node meets its condition.
+     * The node's result is `true` if [items] contains the item in the required quantity.
+     * If the item has tiers, any better item in the same amount will suffice.
+     *
+     * - If the item has tiers, any higher-tier item in the same quantity will also suffice.
+     * - If [currentNode.max] is lower than [currentNode.min],
+     *   [currentNode.min] will be capped at [currentNode.max].
+     *
+     * TODO: you might want to consider adding up better items together
+     *  (x2 of III + x1 of II = x3 of I),
+     *  or limit the number of items that have tiers to 1.
+     *
+     * TODO: you also should return true here
+     *  if there are:
+     *  - potions with a higher lvl of the effect than needed,
+     *  - items with a higher lvl of enchantments than needed. :)
+     *  - maybe even better armor/tools/weapons and get rid of the tiers concept ?? :)
+     */
+    private fun processItemNode(currentNode: ItemNode) {
         if (!currentNode.id.isItemWithTiers()) {
             val itemAmount = items[currentNode.id] ?: 0
             val result = itemAmount <= currentNode.max &&
@@ -68,7 +95,7 @@ object ConditionCalculator {
         }
 
         val currentTier = currentNode.id.autoShopItemTier()
-        val result = getAllTierItems(currentNode.id, ModuleAutoShop.currentConfig.itemsWithTiers ?: emptyMap())
+        val result = getAllTierItems(currentNode.id, ModuleAutoShop.currentConfig.tierDictionary ?: emptyMap())
             .filter { it.autoShopItemTier() >= currentTier }
             .any {
                 val itemAmount = items[it] ?: 0
@@ -78,7 +105,12 @@ object ConditionCalculator {
         results[currentNode] = result
     }
 
-    private fun processAllConditionNode(currentNode: AllConditionNode, isVisited: Boolean) {
+    /**
+     * Evaluates the value of the given "all" node.
+     * This node contains multiple child nodes
+     * that must all evaluate to true for the "all" condition to be satisfied.
+     */
+    private fun processAllNode(currentNode: AllNode, isVisited: Boolean) {
         if (currentNode.all.isEmpty()) {
             results[currentNode] = true
             return
@@ -95,7 +127,12 @@ object ConditionCalculator {
         }
     }
 
-    private fun processAnyConditionNode(currentNode: AnyConditionNode, isVisited: Boolean) {
+    /**
+     * Evaluates the value of the given "any" node.
+     * This node contains multiple child nodes
+     * and the condition is satisfied if at least one of its child nodes evaluates to true.
+     */
+    private fun processAnyNode(currentNode: AnyNode, isVisited: Boolean) {
         if (currentNode.any.isEmpty()) {
             results[currentNode] = true
             return

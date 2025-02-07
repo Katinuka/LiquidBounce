@@ -2,7 +2,7 @@
   "comment": "An example config for CubeCraft",
   "traderTitles": ["EggWars Shop"],
   "initialCategorySlot": 0,
-  "itemsWithTiers": {
+  "tierDictionary": {
     "sword": 		["wooden_sword", "stone_sword", "iron_sword", "diamond_sword", "netherite_sword", "diamond_sword:sharpness:5", "netherite_sword:sharpness:5"],
     "helmet": 		["iron_helmet", "diamond_helmet", "netherite_helmet"],
     "chestplate":	["iron_chestplate", "diamond_chestplate", "netherite_chestplate"],

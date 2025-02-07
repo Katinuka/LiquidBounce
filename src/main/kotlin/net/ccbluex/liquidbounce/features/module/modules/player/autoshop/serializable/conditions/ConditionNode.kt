@@ -1,7 +1,7 @@
 /*
  * This file is part of LiquidBounce (https://github.com/CCBlueX/LiquidBounce)
  *
- * Copyright (c) 2015 - 2025 CCBlueX
+ * Copyright (c) 2015 - 2024 CCBlueX
  *
  * LiquidBounce is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -24,8 +24,22 @@ import com.google.gson.JsonElement
 import com.google.gson.JsonParseException
 import java.lang.reflect.Type
 
+/**
+ * Represents a base interface for all types of condition nodes in the condition tree.
+ */
 sealed interface ConditionNode
 
+/**
+ * Custom deserializer for [ConditionNode].
+ *
+ * This deserializer is responsible for converting JSON into the correct subclass of [ConditionNode]
+ * based on the presence of specific keys in the JSON object. It supports deserialization of:
+ * - `ItemNode` when the JSON contains "id" property.
+ * - `AnyNode` when the JSON contains "any" property.
+ * - `AllNode` when the JSON contains "all" property.
+ *
+ * @throws JsonParseException if the JSON is invalid or missing necessary fields for identifying the node type.
+ */
 class ConditionNodeDeserializer : JsonDeserializer<ConditionNode> {
     override fun deserialize(json: JsonElement?, typeOfT: Type, context: JsonDeserializationContext): ConditionNode {
         if (json == null || !json.isJsonObject) {
@@ -35,9 +49,9 @@ class ConditionNodeDeserializer : JsonDeserializer<ConditionNode> {
         val jsonObject = json.asJsonObject
 
         return when {
-            jsonObject.has("id") -> context.deserialize(json, ItemConditionNode::class.java)
-            jsonObject.has("any") -> context.deserialize(json, AnyConditionNode::class.java)
-            jsonObject.has("all") -> context.deserialize(json, AllConditionNode::class.java)
+            jsonObject.has("id") -> context.deserialize(json, ItemNode::class.java)
+            jsonObject.has("any") -> context.deserialize(json, AnyNode::class.java)
+            jsonObject.has("all") -> context.deserialize(json, AllNode::class.java)
             else -> throw JsonParseException("Unknown ConditionNode type: Missing or invalid discriminator")
         }
     }

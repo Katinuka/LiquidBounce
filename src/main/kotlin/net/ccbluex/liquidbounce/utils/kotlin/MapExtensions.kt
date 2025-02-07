@@ -20,6 +20,7 @@ package net.ccbluex.liquidbounce.utils.kotlin
 
 /**
  * Sums the values for matching keys from another map to this map.
+ *
  * Modifies the current collection.
  */
 fun <K> MutableMap<K, Int>.sumValues(anotherMap: Map<K, Int>): MutableMap<K, Int> {
@@ -29,6 +30,19 @@ fun <K> MutableMap<K, Int>.sumValues(anotherMap: Map<K, Int>): MutableMap<K, Int
     return this
 }
 
+/**
+ * Increments the value for the specified [key] by the given [amount],
+ * or sets it if the key is not present.
+ *
+ * Modifies the current collection.
+ */
 fun <K> MutableMap<K, Int>.incrementOrSet(key: K, amount: Int) {
     this[key] = (this[key] ?: 0) + amount
+}
+
+/**
+ * Overload of [incrementOrSet] that accepts a [Pair] of key and amount.
+ */
+fun <K> MutableMap<K, Int>.incrementOrSet(pair: Pair<K, Int>) {
+    incrementOrSet(key=pair.first, amount=pair.second)
 }

@@ -1,7 +1,7 @@
 /*
  * This file is part of LiquidBounce (https://github.com/CCBlueX/LiquidBounce)
  *
- * Copyright (c) 2015 - 2023 CCBlueX
+ * Copyright (c) 2015 - 2025 CCBlueX
  *
  * LiquidBounce is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -23,78 +23,176 @@ import net.ccbluex.liquidbounce.event.events.GameTickEvent
 import net.ccbluex.liquidbounce.event.handler
 import net.ccbluex.liquidbounce.utils.client.player
 import net.ccbluex.liquidbounce.utils.item.getPotionEffects
+import net.ccbluex.liquidbounce.utils.item.id
 import net.ccbluex.liquidbounce.utils.item.isNothing
 import net.ccbluex.liquidbounce.utils.kotlin.incrementOrSet
 import net.ccbluex.liquidbounce.utils.kotlin.sumValues
+import net.minecraft.item.ItemStack
 import net.minecraft.item.PotionItem
 import net.minecraft.registry.Registries
 
+/**
+ * Inventory manager that tracks the items in the player's inventory.
+ * Groups items by their indices and stores the amount of the former.
+ * Contains the data about the items from the current and previous ticks.
+ * If the player buys armor, which is known to be received later, after the shop gets closed,
+ * the armor will be stored in [pendingItems] until the player receives it.
+ */
 class AutoShopInventoryManager : EventListener {
 
     private val prevInventoryItems = mutableMapOf<String, Int>()
     private val currentInventoryItems = mutableMapOf<String, Int>()
+
+    /**
+     * Some BedWars implementations don't give players armor straight after a purchase.
+     * The players receive it after a shop gets closed.
+     * Until then, the purchased armor is marked as "pending".
+     */
     private val pendingItems = mutableMapOf<String, Int>()
 
+    /**
+     * The items the player currently has plus the pending items.
+     */
+    val items : Map<String, Int>
+        get() {
+            synchronized(currentInventoryItems) {
+                synchronized(pendingItems) {
+                    return currentInventoryItems.toMutableMap().sumValues(pendingItems)
+                }
+            }
+        }
+
+    /**
+     * Updates the items from the player's inventory every tick
+     */
     @Suppress("unused")
-    // update the items from the player's inventory every tick
     private val onTick = handler<GameTickEvent> {
+        if (!ModuleAutoShop.running) {
+            return@handler // doesn't track the inventory without the module.
+        }
+
+        // includes armor and the offhand slot
         val inventoryItems = player.inventory.main.toMutableList().apply {
             addAll(player.inventory.armor)
             addAll(player.inventory.offHand)
+            // TODO: should it also include the crafting slots? :)
         }
 
         val newItems = mutableMapOf<String, Int>()
         inventoryItems.filter { !it.isNothing() }.forEach { stack ->
-            val id = Registries.ITEM.getId(stack.item).path
-            newItems.incrementOrSet(id, stack.count)
+            // adds the current item
+            newItems.incrementOrSet(stack.item.id, stack.count)
 
             // collects all kinds of colorful blocks together
             // so that there is no dependency on color
-            when {
-                stack.item.isWool() ->          newItems.incrementOrSet(WOOL_ID, stack.count)
-                stack.item.isTerracotta() ->    newItems.incrementOrSet(TERRACOTTA_ID, stack.count)
-                stack.item.isStainedGlass() ->  newItems.incrementOrSet(STAINED_GLASS_ID, stack.count)
-                stack.item.isConcrete() ->      newItems.incrementOrSet(CONCRETE_ID, stack.count)
-            }
+            newItems.incrementOrSet(colorfulBlockOf(stack))
 
             // groups potions by their effects
-            if (stack.item is PotionItem) {
-                stack.getPotionEffects().forEach { effect ->
-                    val potionID = Registries.STATUS_EFFECT.getId(effect.effectType.value())?.path
-                    val newID = "$POTION_PREFIX$potionID"
-                    if (potionID != null) {
-                        newItems.incrementOrSet(newID, stack.count)
-                    }
-                }
-            }
+            newItems.sumValues(potionsOf(stack))
 
             // groups items by enchantments
-            // example: [chainmail_chestplate:protection:2 = 1, iron_sword:sharpness:3 = 1]
-            stack.enchantments.enchantmentEntries.forEach {
-                val enchantmentID = it.key.idAsString.replace("minecraft:", "")
-                val level = it.intValue
-                val enchantedItemID = "$id:$enchantmentID:$level"
-                newItems.incrementOrSet(enchantedItemID, stack.count)
-            }
+            newItems.sumValues(enchantmentsOf(stack))
 
-            // adds data about tiered items
-            // example: [sword:tier:1 = 1, bow:tier:2 = 1]
-            ModuleAutoShop.currentConfig.itemsWithTiers?.forEach {
-                it.value.forEachIndexed { index, id ->
-                    val tieredItemID = it.key + TIER_ID + (index + 1)
-                    val tieredItemAmount = newItems[id] ?: 0
-                    if (tieredItemAmount > 0) {
-                        newItems.incrementOrSet(tieredItemID, tieredItemAmount)
-                    }
-                }
-            }
+            // tracks items with tiers
+            newItems.sumValues(tiersOf(newItems))
         }
 
-        // experience level
+        // tracks the experience level of the player
         newItems[EXPERIENCE_ID] = player.experienceLevel
         this.update(newItems)
     }
 
+    /**
+     * If [stack] represents a colorful block,
+     * it returns a general block ID paired with the [stack] count.
+     *
+     * Example:
+     * - 64 blocks of red_wool will result in: "wool" to 64;
+     * - 16 blocks of blue_terracotta will result in: "terracotta" to 16.
+     */
+    @Suppress("ReturnCount")
+    private fun colorfulBlockOf(stack: ItemStack) : Pair<String, Int> {
+        when {
+            stack.item.isWool() ->          return WOOL_ID to stack.count
+            stack.item.isTerracotta() ->    return TERRACOTTA_ID to stack.count
+            stack.item.isStainedGlass() ->  return STAINED_GLASS_ID to stack.count
+            stack.item.isConcrete() ->      return CONCRETE_ID to stack.count
+        }
+        return stack.item.id to 0
+    }
+
+    /**
+     * If [stack] is represents a potion,
+     * it returns a map of potion effect indices paired with the [stack] count.
+     *
+     * Example: If [stack] contains a potion item with:
+     * - Strength II;
+     * - Speed I.
+     *
+     * the function will return something like this:
+     * mapOf("potion:strength" to 1, "potion:speed" to 1)
+     *
+     * TODO: consider including potion effect levels
+     */
+    private fun potionsOf(stack: ItemStack) : Map<String, Int> {
+        if (stack.item !is PotionItem) {
+            return emptyMap()
+        }
+
+        return stack.getPotionEffects()
+            .mapNotNull { effect -> Registries.STATUS_EFFECT.getId(effect.effectType.value())?.path }
+            .associate { potionID -> "$POTION_PREFIX$potionID" to stack.count } // Example: "potion:speed"
+    }
+
+    /**
+     * If [stack] represents an enchanted item,
+     * it returns a map of enchantment indices paired with the [stack] count.
+     *
+     * Example: If [stack] contains a stone sword item with:
+     * - Sharpness II;
+     * - Unbreaking I.
+     *
+     * the function will return something like this:
+     * mapOf("stone_sword:sharpness:2" to 1, "stone_sword:unbreaking:1" to 1)
+     */
+    private fun enchantmentsOf(stack: ItemStack) : Map<String, Int> {
+        return stack.enchantments.enchantmentEntries.mapNotNull {
+            "${it.key.idAsString.removePrefix("minecraft:")}:${it.intValue}" // Example: "sharpness:2"
+        }.associate { "${stack.item.id}:$it" to stack.count } // Example: "iron_sword:sharpness:2"
+    }
+
+    /**
+     * Returns a map representing items with tiers and their amount in [inventoryItems].
+     *
+     * Example: If the tier dictionary is:
+     * - "sword": ("wooden_sword", "stone_sword");
+     * - "bow": ("bow:power1", "bow:power:3").
+     *
+     * and [inventoryItems] contains:
+     * - 2 items of "wooden_sword";
+     * - 1 item of "bow:power:3".
+     *
+     * the function will return something like this:
+     * mapOf("sword:tier:1" to 2, "bow:tier:2" to 1)
+     */
+    private fun tiersOf(inventoryItems: Map<String, Int>): Map<String, Int> {
+        // TODO: I don't like this accessing ModuleAutoShop.currentConfig.itemsWithTiers
+        //  it would be better if it was written better(somehow)
+        val tierDictionary = ModuleAutoShop.currentConfig.tierDictionary ?: return emptyMap()
+
+        // TODO: test me please
+        return tierDictionary.flatMap { (tierName, items) ->
+            items.mapIndexedNotNull { index, itemId ->
+                val newID = "$tierName$TIER_ID${index + 1}"
+                val amount = inventoryItems[itemId] ?: 0
+                if (amount > 0) newID to amount else null
+            }
+        }.toMap()
+    }
+
+    /**
+     * Updates the states of the inventory from the current and previous ticks.
+     */
     private fun update(newItems: Map<String, Int>) {
         synchronized(currentInventoryItems) {
             prevInventoryItems.clear()
@@ -108,6 +206,14 @@ class AutoShopInventoryManager : EventListener {
         }
     }
 
+    /**
+     * Updates the state of the pending items.
+     * If the player buys an item in a certain quantity, the item is marked as pending
+     * until an inventory update comes with the modified quantity of this item.
+     *
+     * If the inventory update doesn't bring or take enough items,
+     * the item remains marked as pending until the player gets or spends enough items.
+     */
     private fun updatePendingItems() {
         val itemsToRemove = mutableSetOf<String>()
         val itemsToUpdate = mutableMapOf<String, Int>()
@@ -118,22 +224,22 @@ class AutoShopInventoryManager : EventListener {
                 val prevAmount = prevInventoryItems[item] ?: 0
                 val currentPendingAmount = pendingItems[item] ?: 0
 
-                // doesn't increase the pending items amount
-                // if the player loses those items somehow and vise versa
-                val receivedPositiveItems = currentPendingAmount > 0 && newAmount > prevAmount
-                val lostNegativeItems = currentPendingAmount < 0 && newAmount < prevAmount
+                val difference = newAmount - prevAmount
 
+                // prevents the pending items amount increase
+                // if the player loses those items somehow and vise versa
+                val receivedPositiveItems = currentPendingAmount > 0 && difference > 0
+                val spentNegativeItems = currentPendingAmount < 0 && difference < 0
+
+                val newPendingAmount = currentPendingAmount - difference
                 if (receivedPositiveItems) {
-                    val newPendingAmount = currentPendingAmount - (newAmount - prevAmount)
                     when {
-                        newPendingAmount <= 0 -> itemsToRemove.add(item)
+                        newPendingAmount <= 0 -> itemsToRemove.add(item) // the player has received enough items
                         else -> itemsToUpdate[item] = newPendingAmount
                     }
-                }
-                else if (lostNegativeItems) {
-                    val newPendingAmount = currentPendingAmount + (prevAmount - newAmount)
+                } else if (spentNegativeItems) {
                     when {
-                        newPendingAmount >= 0 -> itemsToRemove.add(item)
+                        newPendingAmount >= 0 -> itemsToRemove.add(item) // the player has spent enough items
                         else -> itemsToUpdate[item] = newPendingAmount
                     }
                 }
@@ -144,14 +250,6 @@ class AutoShopInventoryManager : EventListener {
             }
             itemsToUpdate.forEach { (item, newPendingAmount) ->
                 pendingItems[item] = newPendingAmount
-            }
-        }
-    }
-
-    fun getInventoryItems() : Map<String, Int> {
-        synchronized(currentInventoryItems) {
-            synchronized(pendingItems) {
-                return currentInventoryItems.toMutableMap().sumValues(pendingItems)
             }
         }
     }
@@ -169,5 +267,4 @@ class AutoShopInventoryManager : EventListener {
     }
 
     override fun parent() = ModuleAutoShop
-
 }

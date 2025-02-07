@@ -24,17 +24,28 @@ import com.google.gson.JsonElement
 import com.google.gson.JsonParseException
 import java.lang.reflect.Type
 
-data class ItemConditionNode(
+/**
+ * Represents a node with a condition that is satisfied
+ * if the player has a specific item in a certain quantity.
+ * The quantity of the item must be between [min] and [max], both inclusive.
+ */
+data class ItemNode(
     val id: String,
     val min: Int = 1,
     val max: Int = Int.MAX_VALUE
 ) : ConditionNode
 
-class ItemConditionNodeDeserializer : JsonDeserializer<ItemConditionNode> {
+/**
+ * A custom deserializer for [ItemNode], responsible for
+ * converting a JSON representation into an [ItemNode] instance.
+ * Ensures required fields are present and applies default values
+ * where necessary.
+ */
+class ItemNodeDeserializer : JsonDeserializer<ItemNode> {
     override fun deserialize(
         json: JsonElement?,
         typeOfT: Type,
-        context: JsonDeserializationContext): ItemConditionNode {
+        context: JsonDeserializationContext): ItemNode {
 
         if (json == null || !json.isJsonObject) {
             throw JsonParseException("Invalid JSON: Expected a JsonObject")
@@ -49,6 +60,6 @@ class ItemConditionNodeDeserializer : JsonDeserializer<ItemConditionNode> {
         val min = jsonObject["min"]?.asInt ?: 1
         val max = jsonObject["max"]?.asInt ?: Int.MAX_VALUE
 
-        return ItemConditionNode(id, min, max)
+        return ItemNode(id, min, max)
     }
 }

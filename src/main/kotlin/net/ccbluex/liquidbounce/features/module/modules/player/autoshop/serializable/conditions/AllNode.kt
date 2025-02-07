@@ -18,4 +18,8 @@
  */
 package net.ccbluex.liquidbounce.features.module.modules.player.autoshop.serializable.conditions
 
-data class AllConditionNode(val all: List<ConditionNode>) : ConditionNode
+/**
+ * Represents a node with a condition that is satisfied
+ * only if all child nodes meet their respective conditions.
+ */
+data class AllNode(val all: List<ConditionNode>) : ConditionNode

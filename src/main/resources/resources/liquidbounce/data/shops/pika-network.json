@@ -2,7 +2,7 @@
   "comment": "An example config for PіkаNеtwоrk",
   "traderTitles": ["shop"],
   "initialCategorySlot": 0,
-  "itemsWithTiers": {
+  "tierDictionary": {
     "sword": 		["stone_sword", "iron_sword", "diamond_sword"],
     "armor": 		["chainmail_boots", "iron_boots", "diamond_boots"]
   },

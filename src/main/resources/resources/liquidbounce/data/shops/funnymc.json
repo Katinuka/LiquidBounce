@@ -1,7 +1,7 @@
 {
 	"traderTitles": ["магазин"],
 	"initialCategorySlot": -1,
-	"itemsWithTiers": {
+	"tierDictionary": {
 		"sword": 		["stone_sword", "iron_sword", "diamond_sword"],
 		"helmet": 		["leather_helmet", "chainmail_helmet", "iron_helmet", "diamond_helmet"],
 		"chestplate": 	["leather_chestplate", "chainmail_chestplate", "iron_chestplate", "diamond_chestplate"],

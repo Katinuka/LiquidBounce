@@ -1,7 +1,7 @@
 /*
  * This file is part of LiquidBounce (https://github.com/CCBlueX/LiquidBounce)
  *
- * Copyright (c) 2015 - 2025 CCBlueX
+ * Copyright (c) 2015 - 2024 CCBlueX
  *
  * LiquidBounce is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -18,10 +18,18 @@
  */
 package net.ccbluex.liquidbounce.features.module.modules.player.autoshop.serializable
 
+/**
+ * Configuration for the AutoShop module, defining how it interacts with the shop.
+ *
+ * - **[traderTitles]**: Determines how to detect if the shop is open.
+ * - **[initialCategorySlot]**: Specifies the starting position (category) in the shop.
+ * - **[elements]**: Lists the items that should be bought.
+ * - **[tierDictionary]**: Defines items with tiers that require special handling.
+ */
 data class ShopConfig (
     val traderTitles: List<String>,
     val initialCategorySlot: Int,
-    val itemsWithTiers: Map<String, List<String>>? = emptyMap(),
+    val tierDictionary: Map<String, List<String>>? = emptyMap(),
     val elements: List<ShopElement>
 ) {
     companion object {

@@ -1,7 +1,7 @@
 /*
  * This file is part of LiquidBounce (https://github.com/CCBlueX/LiquidBounce)
  *
- * Copyright (c) 2015 - 2025 CCBlueX
+ * Copyright (c) 2015 - 2024 CCBlueX
  *
  * LiquidBounce is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -24,11 +24,24 @@ import com.google.gson.JsonElement
 import com.google.gson.JsonParseException
 import java.lang.reflect.Type
 
+/**
+ * Data class used to describe an item's price or the item itself.
+ *
+ * TODO: this is very similar to ItemNode.
+ *  The only difference is the presence of the 'max' value.
+ *  Shouldn't it just use ItemNode for items and their prices as well?
+ */
 data class ItemInfo(
     val id: String,
     val minAmount: Int = 1
 )
 
+/**
+ * A custom deserializer for [ItemInfo], responsible for
+ * converting a JSON representation into an [ItemInfo] instance.
+ * Ensures required fields are present and applies default values
+ * where necessary.
+ */
 class ItemInfoDeserializer : JsonDeserializer<ItemInfo> {
     override fun deserialize(json: JsonElement?, typeOfT: Type, context: JsonDeserializationContext): ItemInfo {
         if (json == null || !json.isJsonObject) {

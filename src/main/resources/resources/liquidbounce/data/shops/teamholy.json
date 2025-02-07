@@ -1,7 +1,7 @@
 {
   "traderTitles": ["shop"],
   "initialCategorySlot": -1,
-  "itemsWithTiers": {
+  "tierDictionary": {
     "chestplate":	["chainmail_chestplate:protection:1", "chainmail_chestplate:protection:2", "chainmail_chestplate:protection:3"],
     "sword": 		["golden_sword:sharpness:1", "golden_sword:sharpness:2", "iron_sword"]
   },

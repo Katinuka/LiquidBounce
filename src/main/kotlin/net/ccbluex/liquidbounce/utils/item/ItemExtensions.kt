@@ -42,6 +42,7 @@ import net.minecraft.entity.attribute.EntityAttributes
 import net.minecraft.entity.effect.StatusEffectInstance
 import net.minecraft.item.*
 import net.minecraft.item.consume.UseAction
+import net.minecraft.registry.Registries
 import net.minecraft.registry.RegistryKey
 import net.minecraft.registry.RegistryKeys
 import net.minecraft.registry.entry.RegistryEntry
@@ -186,3 +187,11 @@ fun ItemStack.isFullBlock(): Boolean {
     val block = this.getBlock() ?: return false
     return block.defaultState.isFullCube(mc.world!!, BlockPos.ORIGIN)
 }
+
+/**
+ * The part of the text id after "minecraft:" (e.g. "apple", "stone_sword")
+ *
+ * @see net.ccbluex.liquidbounce.features.module.modules.player.autoshop.AutoShopInventoryManager
+ */
+val Item.id: String
+    get() = Registries.ITEM.getId(this).path

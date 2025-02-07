@@ -1,7 +1,7 @@
 /*
  * This file is part of LiquidBounce (https://github.com/CCBlueX/LiquidBounce)
  *
- * Copyright (c) 2015 - 2025 CCBlueX
+ * Copyright (c) 2015 - 2024 CCBlueX
  *
  * LiquidBounce is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -18,26 +18,24 @@
  */
 package net.ccbluex.liquidbounce.config
 
+import com.google.gson.Gson
 import com.google.gson.GsonBuilder
 import net.ccbluex.liquidbounce.config.types.NamedChoice
 import net.ccbluex.liquidbounce.event.events.NotificationEvent
 import net.ccbluex.liquidbounce.features.module.modules.player.autoshop.ModuleAutoShop
 import net.ccbluex.liquidbounce.features.module.modules.player.autoshop.serializable.*
-import net.ccbluex.liquidbounce.features.module.modules.player.autoshop.serializable.conditions.ConditionNode
-import net.ccbluex.liquidbounce.features.module.modules.player.autoshop.serializable.conditions.ConditionNodeDeserializer
-import net.ccbluex.liquidbounce.features.module.modules.player.autoshop.serializable.conditions.ItemConditionNode
-import net.ccbluex.liquidbounce.features.module.modules.player.autoshop.serializable.conditions.ItemConditionNodeDeserializer
+import net.ccbluex.liquidbounce.features.module.modules.player.autoshop.serializable.conditions.*
 import net.ccbluex.liquidbounce.utils.client.logger
 import net.ccbluex.liquidbounce.utils.client.notification
 
 object AutoShopConfig {
 
-    val autoShopGson = GsonBuilder()
+    val autoShopGson: Gson = GsonBuilder()
         .setPrettyPrinting()
         .registerTypeAdapter(ShopElement::class.javaObjectType, ShopElementDeserializer())
         .registerTypeAdapter(ItemInfo::class.javaObjectType, ItemInfoDeserializer())
         .registerTypeAdapter(ConditionNode::class.javaObjectType, ConditionNodeDeserializer())
-        .registerTypeAdapter(ItemConditionNode::class.javaObjectType, ItemConditionNodeDeserializer())
+        .registerTypeAdapter(ItemNode::class.javaObjectType, ItemNodeDeserializer())
         .create()
 
     /**
@@ -87,7 +85,8 @@ enum class ShopConfigPreset(override val choiceName: String, val localFileName: 
     CUBECRAFT("CubeCraft", "cubecraft"),
     TEAMHOLY("TeamHoly", "teamholy"),
     FUNNYMC("FunnyMC", "funnymc"),
-    DEXLAND("Dexland", "dexland");
+    DEXLAND("Dexland", "dexland"),
+    MYSERVER("MyServer", "test");
 
     val internalPath = "/resources/liquidbounce/data/shops/${localFileName}.json"
 

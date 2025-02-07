@@ -4,7 +4,7 @@ fun String.isItemWithTiers() : Boolean {
     return this.contains(TIER_ID)
 }
 
-fun String.generalTiersName() : String {
+fun String.tierCategory() : String {
     return this.split(TIER_ID)[0]   // example: sword:tier:2 -> sword
 }
 
@@ -18,17 +18,17 @@ fun String.autoShopItemTier() : Int {
 }
 
 /**
- * Checks if there is a better item so that it's not necessary to buy the current item
+ * Checks if there is a better item so that it's not necessary to buy the current item.
  */
 fun hasBetterTierItem(item: String, items: Map<String, Int>) : Boolean {
-    return getAllTierItems(item, ModuleAutoShop.currentConfig.itemsWithTiers ?: emptyMap())
+    return getAllTierItems(item, ModuleAutoShop.currentConfig.tierDictionary ?: emptyMap())
         .filter { it.autoShopItemTier() > item.autoShopItemTier() }
         .any { (items[it] ?: 0) > 0 }
 }
 
 fun actualTierItem(item: String, itemsWithTiers: Map<String, List<String>> =
-    ModuleAutoShop.currentConfig.itemsWithTiers ?: emptyMap()) : String {
-    val tiers = itemsWithTiers[item.generalTiersName()] ?: return item
+    ModuleAutoShop.currentConfig.tierDictionary ?: emptyMap()) : String {
+    val tiers = itemsWithTiers[item.tierCategory()] ?: return item
     val tier = item.autoShopItemTier()
 
     // example: sword:tier:2 -> iron_sword
@@ -36,9 +36,9 @@ fun actualTierItem(item: String, itemsWithTiers: Map<String, List<String>> =
 }
 
 fun getAllTierItems(item: String, itemsWithTiers: Map<String, List<String>>) : List<String> {
-    val generalName = item.generalTiersName()    // example: sword:tier:2 -> sword
-    val tiers = itemsWithTiers[generalName] ?: return emptyList()
+    val tierCategory = item.tierCategory()    // example: sword:tier:2 -> sword
+    val items = itemsWithTiers[tierCategory] ?: return emptyList()
 
     // example: [sword:tier:1, sword:tier:2, sword:tier:3, sword:tier:4]
-    return List(tiers.size) { index -> "${generalName}$TIER_ID${index + 1}" }
+    return List(items.size) { index -> "${tierCategory}$TIER_ID${index + 1}" }
 }
