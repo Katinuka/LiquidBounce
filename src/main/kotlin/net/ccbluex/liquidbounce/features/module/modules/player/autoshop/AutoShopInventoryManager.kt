@@ -29,6 +29,7 @@ import net.ccbluex.liquidbounce.utils.kotlin.incrementOrSet
 import net.ccbluex.liquidbounce.utils.kotlin.sumValues
 import net.minecraft.item.ItemStack
 import net.minecraft.item.PotionItem
+import net.minecraft.item.SplashPotionItem
 import net.minecraft.registry.Registries
 
 /**
@@ -122,7 +123,7 @@ class AutoShopInventoryManager : EventListener {
     }
 
     /**
-     * If [stack] is represents a potion,
+     * If [stack] represents a potion,
      * it returns a map of potion effect indices paired with the [stack] count.
      *
      * Example: If [stack] contains a potion item with:
@@ -130,9 +131,7 @@ class AutoShopInventoryManager : EventListener {
      * - Speed I.
      *
      * the function will return something like this:
-     * mapOf("potion:strength" to 1, "potion:speed" to 1)
-     *
-     * TODO: consider including potion effect levels
+     * mapOf("potion:strength:2" to 1, "potion:speed:1" to 1)
      */
     private fun potionsOf(stack: ItemStack) : Map<String, Int> {
         if (stack.item !is PotionItem) {
@@ -140,8 +139,16 @@ class AutoShopInventoryManager : EventListener {
         }
 
         return stack.getPotionEffects()
-            .mapNotNull { effect -> Registries.STATUS_EFFECT.getId(effect.effectType.value())?.path }
-            .associate { potionID -> "$POTION_PREFIX$potionID" to stack.count } // Example: "potion:speed"
+            .map { effect ->
+                val effectId = Registries.STATUS_EFFECT.getId(effect.effectType.value())?.path
+                "$effectId:${effect.amplifier + 1}" // Example: "speed:1"
+            }.associate { potionID ->
+                // Examples: "splash_potion:speed:1", "potion:strength:2"
+                when(stack.item) {
+                    is SplashPotionItem ->  "$SPLASH_POTION_PREFIX$potionID" to stack.count
+                    else ->                 "$POTION_PREFIX$potionID" to stack.count
+                }
+            }
     }
 
     /**

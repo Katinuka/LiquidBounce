@@ -144,7 +144,7 @@
     },
     {
 		"comment": "potion of swiftness (x2)",
-		"item": {"id": "potion:speed", "minAmount": 2},
+		"item": {"id": "potion:speed:1", "minAmount": 2},
 		"categorySlot": 5, "itemSlot": 18,
 		"price": {"id": "emerald", "minAmount": 1},
 		"purchaseConditions": {"all": [

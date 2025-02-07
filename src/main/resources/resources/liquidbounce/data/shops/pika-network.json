@@ -85,12 +85,12 @@
       "price": {"id": "iron_ingot", "minAmount": 40}
     },
     {
-      "item": {"id": "potion:speed"},
+      "item": {"id": "potion:speed:1"},
       "categorySlot": 7, "itemSlot": 19,
       "price": {"id": "emerald", "minAmount": 1}
     },
     {
-      "item": {"id": "potion:jump_boost"},
+      "item": {"id": "potion:jump_boost:1"},
       "categorySlot": 7, "itemSlot": 20,
       "price": {"id": "emerald", "minAmount": 1}
     }

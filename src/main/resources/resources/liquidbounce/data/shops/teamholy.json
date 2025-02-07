@@ -59,13 +59,13 @@
       "price": {"id": "brick", "minAmount": 2}
     },
     {
-      "item": {"id": "potion:strength"},
+      "item": {"id": "potion:strength:1"},
       "categorySlot": 7, "itemSlot": 16,
       "price": {"id": "gold_ingot", "minAmount": 6},
       "purchaseConditions": {"id": "sword:tier:3"}
     },
     {
-      "item": {"id": "potion:speed"},
+      "item": {"id": "potion:speed:1"},
       "categorySlot": 7, "itemSlot": 10,
       "price": {"id": "iron_ingot", "minAmount": 4},
       "purchaseConditions": {"id": "sword:tier:1"}
