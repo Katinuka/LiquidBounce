@@ -1,37 +1,42 @@
 {
   "simple_item": {
-    "id": "wool",
     "min": 16,
+    "id": "wool",
     "max": 32
   },
+
   "without_min_value": {
     "id": "wool",
     "max": 32
   },
+
   "without_max_value": {
-    "id": "potion:speed",
+    "id": "potion:speed::1",
     "min": 2
   },
+
   "with_extra_fields": {
     "id": "wool",
-    "min": 48,
-    "comment": "need at least 48 blocks"
+    "comment": "need at least 48 blocks",
+    "min": 48
   },
+
   "no_item": {
     "id": "iron_sword",
     "max": 0,
     "comment": "should have 0 swords"
   },
+
   "at_least_one": {
-    "id": "sword:tier:1"
+    "id": "sword:tier::1"
   },
 
   "simple_all": {
     "all": [
       {
         "id": "wool",
-        "min": 32,
-        "max": 64
+        "max": 64,
+        "min": 32
       },
       {
         "id": "golden_apple",
@@ -40,9 +45,11 @@
       }
     ]
   },
+
   "empty_all": {
     "all": []
   },
+
   "single_element_all": {
     "all": [
       {
@@ -50,6 +57,7 @@
       }
     ]
   },
+
   "nested_all": {
     "all": [
       {
@@ -88,20 +96,23 @@
         "max": 10
       },
       {
-        "id": "axe:tier:1"
+        "id": "axe:tier::1"
       }
     ]
   },
+
   "empty_any": {
     "any": []
   },
+
   "single_element_any": {
     "any": [
       {
-        "id": "diamond_sword:sharpness:1"
+        "id": "diamond_sword:sharpness::1"
       }
     ]
   },
+
   "nested_any": {
     "any": [
       {
@@ -173,6 +184,7 @@
       }
     ]
   },
+
   "overly_nested": {
     "any": [
       {

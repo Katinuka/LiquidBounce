@@ -39,11 +39,7 @@ object ConditionCalculator {
      * Checks if the given item meets the conditions defined by the root node.
      * Uses Depth-First Search (DFS)
      */
-    fun process(currentItem: String, root: ConditionNode?) : Boolean {
-        if (currentItem.isItemWithTiers() && hasBetterTierItem(currentItem, items)) {
-            return false
-        }
-
+    fun process(root: ConditionNode?) : Boolean {
         if (root == null) {
             return true
         }
@@ -85,10 +81,11 @@ object ConditionCalculator {
      *  - maybe even better armor/tools/weapons and get rid of the tiers concept ?? :)
      */
     private fun processItemNode(currentNode: ItemNode) {
-        if (!currentNode.id.isItemWithTiers()) {
-            val itemAmount = items[currentNode.id] ?: 0
-            val result = itemAmount <= currentNode.max &&
-                itemAmount >= currentNode.min.coerceAtMost(currentNode.max)
+        val betterItemAmount = betterItemsOf(currentNode.id, items).values.sum()
+        val itemAmount = (items[currentNode.id] ?: 0) + betterItemAmount
+
+        val result = itemAmount <= currentNode.max &&
+            itemAmount >= currentNode.min.coerceAtMost(currentNode.max)
 
             results[currentNode] = result
             return

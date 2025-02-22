@@ -43,7 +43,7 @@ object ConditionNodeDeserializeTest {
             parse("without_min_value")
         )
         assertEquals(
-            ItemNode(id="potion:speed", min=2, max=Int.MAX_VALUE),
+            ItemNode(id="potion:speed::1", min=2, max=Int.MAX_VALUE),
             parse("without_max_value")
         )
         assertEquals(
@@ -55,7 +55,7 @@ object ConditionNodeDeserializeTest {
             parse("no_item")
         )
         assertEquals(
-            ItemNode(id="sword:tier:1", min=1, max=Int.MAX_VALUE),
+            ItemNode(id="sword:tier::1", min=1, max=Int.MAX_VALUE),
             parse("at_least_one")
         )
     }
@@ -99,7 +99,7 @@ object ConditionNodeDeserializeTest {
             AnyNode(listOf(
                 ItemNode(id="wool", min = 32, max = 128),
                 ItemNode(id="fireball", max = 10),
-                ItemNode(id="axe:tier:1"),
+                ItemNode(id="axe:tier::1"),
             )),
             parse("simple_any")
         )
@@ -107,7 +107,7 @@ object ConditionNodeDeserializeTest {
             AnyNode(listOf(
                 ItemNode(id="wool", min = 32, max = 128),
                 ItemNode(id="fireball", max = 10),
-                ItemNode(id="axe:tier:1"),
+                ItemNode(id="axe:tier::1"),
             )),
             parse("simple_any")
         )
@@ -117,7 +117,7 @@ object ConditionNodeDeserializeTest {
         )
         assertEquals(
             AnyNode(listOf(
-                ItemNode(id="diamond_sword:sharpness:1")
+                ItemNode(id="diamond_sword:sharpness::1")
             )),
             parse("single_element_any")
         )

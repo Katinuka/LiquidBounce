@@ -98,6 +98,9 @@ class AutoShopInventoryManager : EventListener {
             newItems.sumValues(tiersOf(newItems))
         }
 
+        // tracks items with tiers
+        newItems.sumValues(tiersOf(newItems))
+
         // tracks the experience level of the player
         newItems[EXPERIENCE_ID] = player.experienceLevel
         this.update(newItems)
@@ -131,7 +134,7 @@ class AutoShopInventoryManager : EventListener {
      * - Speed I.
      *
      * the function will return something like this:
-     * mapOf("potion:strength:2" to 1, "potion:speed:1" to 1)
+     * mapOf("potion:strength::2" to 1, "potion:speed::1" to 1)
      */
     private fun potionsOf(stack: ItemStack) : Map<String, Int> {
         if (stack.item !is PotionItem) {
@@ -141,9 +144,9 @@ class AutoShopInventoryManager : EventListener {
         return stack.getPotionEffects()
             .map { effect ->
                 val effectId = Registries.STATUS_EFFECT.getId(effect.effectType.value())?.path
-                "$effectId:${effect.amplifier + 1}" // Example: "speed:1"
+                "$effectId$LEVEL_PREFIX${effect.amplifier + 1}" // Example: "speed::1"
             }.associate { potionID ->
-                // Examples: "splash_potion:speed:1", "potion:strength:2"
+                // Examples: "splash_potion:speed::1", "potion:strength::2"
                 when(stack.item) {
                     is SplashPotionItem ->  "$SPLASH_POTION_PREFIX$potionID" to stack.count
                     else ->                 "$POTION_PREFIX$potionID" to stack.count
@@ -160,11 +163,11 @@ class AutoShopInventoryManager : EventListener {
      * - Unbreaking I.
      *
      * the function will return something like this:
-     * mapOf("stone_sword:sharpness:2" to 1, "stone_sword:unbreaking:1" to 1)
+     * mapOf("stone_sword:sharpness::2" to 1, "stone_sword:unbreaking::1" to 1)
      */
     private fun enchantmentsOf(stack: ItemStack) : Map<String, Int> {
         return stack.enchantments.enchantmentEntries.mapNotNull {
-            "${it.key.idAsString.removePrefix("minecraft:")}:${it.intValue}" // Example: "sharpness:2"
+            "${it.key.idAsString.removePrefix("minecraft:")}$LEVEL_PREFIX${it.intValue}" // Example: "sharpness::2"
         }.associate { "${stack.item.id}:$it" to stack.count } // Example: "iron_sword:sharpness:2"
     }
 
@@ -173,24 +176,23 @@ class AutoShopInventoryManager : EventListener {
      *
      * Example: If the tier dictionary is:
      * - "sword": ("wooden_sword", "stone_sword");
-     * - "bow": ("bow:power1", "bow:power:3").
+     * - "bow": ("bow:power1", "bow:power::3").
      *
      * and [inventoryItems] contains:
      * - 2 items of "wooden_sword";
-     * - 1 item of "bow:power:3".
+     * - 1 item of "bow:power::3".
      *
      * the function will return something like this:
-     * mapOf("sword:tier:1" to 2, "bow:tier:2" to 1)
+     * mapOf("sword:tier::1" to 2, "bow:tier::2" to 1)
      */
     private fun tiersOf(inventoryItems: Map<String, Int>): Map<String, Int> {
         // TODO: I don't like this accessing ModuleAutoShop.currentConfig.itemsWithTiers
         //  it would be better if it was written better(somehow)
         val tierDictionary = ModuleAutoShop.currentConfig.tierDictionary ?: return emptyMap()
 
-        // TODO: test me please
         return tierDictionary.flatMap { (tierName, items) ->
             items.mapIndexedNotNull { index, itemId ->
-                val newID = "$tierName$TIER_ID${index + 1}"
+                val newID = "$tierName$TIER_ID$LEVEL_PREFIX${index + 1}"
                 val amount = inventoryItems[itemId] ?: 0
                 if (amount > 0) newID to amount else null
             }

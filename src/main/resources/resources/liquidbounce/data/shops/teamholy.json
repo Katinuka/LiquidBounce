@@ -2,28 +2,28 @@
   "traderTitles": ["shop"],
   "initialCategorySlot": -1,
   "tierDictionary": {
-    "chestplate":	["chainmail_chestplate:protection:1", "chainmail_chestplate:protection:2", "chainmail_chestplate:protection:3"],
-    "sword": 		["golden_sword:sharpness:1", "golden_sword:sharpness:2", "iron_sword"]
+    "chestplate":	["chainmail_chestplate:protection::1", "chainmail_chestplate:protection::2", "chainmail_chestplate:protection::3"],
+    "sword": 		["golden_sword:sharpness::1", "golden_sword:sharpness::2", "iron_sword"]
   },
   "elements": [
     {
-      "item": {"id": "sword:tier:3"},
+      "item": {"id": "sword:tier::3"},
       "categorySlot": 3, "itemSlot": 15,
       "price": {"id": "gold_ingot", "minAmount": 5}
     },
     {
-      "item": {"id": "sword:tier:1"},
+      "item": {"id": "sword:tier::1"},
       "categorySlot": 3, "itemSlot": 13,
       "price": {"id": "iron_ingot", "minAmount": 1}
     },
     {
-      "item": {"id": "chestplate:tier:3"},
+      "item": {"id": "chestplate:tier::3"},
       "categorySlot": 1, "itemSlot": 16,
       "price": {"id": "iron_ingot", "minAmount": 7},
-      "purchaseConditions": {"id": "sword:tier:1"}
+      "purchaseConditions": {"id": "sword:tier::1"}
     },
     {
-      "item": {"id": "chestplate:tier:1"},
+      "item": {"id": "chestplate:tier::1"},
       "categorySlot": 1, "itemSlot": 14,
       "price": {"id": "iron_ingot", "minAmount": 1}
     },
@@ -59,16 +59,16 @@
       "price": {"id": "brick", "minAmount": 2}
     },
     {
-      "item": {"id": "potion:strength:1"},
+      "item": {"id": "potion:strength::1"},
       "categorySlot": 7, "itemSlot": 16,
       "price": {"id": "gold_ingot", "minAmount": 6},
-      "purchaseConditions": {"id": "sword:tier:3"}
+      "purchaseConditions": {"id": "sword:tier::3"}
     },
     {
-      "item": {"id": "potion:speed:1"},
+      "item": {"id": "potion:speed::1"},
       "categorySlot": 7, "itemSlot": 10,
       "price": {"id": "iron_ingot", "minAmount": 4},
-      "purchaseConditions": {"id": "sword:tier:1"}
+      "purchaseConditions": {"id": "sword:tier::1"}
     }
   ]
 }

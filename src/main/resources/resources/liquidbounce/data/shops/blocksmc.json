@@ -76,12 +76,12 @@
       ]}
     },
     {
-      "item": {"id": "potion:speed:1"},
+      "item": {"id": "potion:speed::1"},
       "categorySlot": 0, "itemSlot": 24,
       "price": {"id": "emerald", "minAmount": 1}
     },
     {
-      "item": {"id": "potion:jump_boost:1"},
+      "item": {"id": "potion:jump_boost::1"},
       "categorySlot": 0, "itemSlot": 33,
       "price": {"id": "emerald", "minAmount": 1}
     },
@@ -96,7 +96,7 @@
       "price": {"id": "iron_ingot", "minAmount": 40}
     },
     {
-      "item": {"id": "bow:punch:1", "minAmount": 1},
+      "item": {"id": "bow:punch::1", "minAmount": 1},
       "categorySlot": 5, "itemSlot": 22,
       "price": {"id": "emerald", "minAmount": 6}
     }
