@@ -70,15 +70,6 @@ object ConditionCalculator {
      * - If [currentNode.max] is lower than [currentNode.min],
      *   [currentNode.min] will be capped at [currentNode.max].
      *
-     * TODO: you might want to consider adding up better items together
-     *  (x2 of III + x1 of II = x3 of I),
-     *  or limit the number of items that have tiers to 1.
-     *
-     * TODO: you also should return true here
-     *  if there are:
-     *  - potions with a higher lvl of the effect than needed,
-     *  - items with a higher lvl of enchantments than needed. :)
-     *  - maybe even better armor/tools/weapons and get rid of the tiers concept ?? :)
      */
     private fun processItemNode(currentNode: ItemNode) {
         val betterItemAmount = betterItemsOf(currentNode.id, items).values.sum()
@@ -87,18 +78,6 @@ object ConditionCalculator {
         val result = itemAmount <= currentNode.max &&
             itemAmount >= currentNode.min.coerceAtMost(currentNode.max)
 
-            results[currentNode] = result
-            return
-        }
-
-        val currentTier = currentNode.id.autoShopItemTier()
-        val result = getAllTierItems(currentNode.id, ModuleAutoShop.currentConfig.tierDictionary ?: emptyMap())
-            .filter { it.autoShopItemTier() >= currentTier }
-            .any {
-                val itemAmount = items[it] ?: 0
-                return@any itemAmount <= currentNode.max &&
-                    itemAmount >= currentNode.min.coerceAtMost(currentNode.max)
-        }
         results[currentNode] = result
     }
 
