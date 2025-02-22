@@ -21,6 +21,8 @@ package net.ccbluex.liquidbounce.features.module.modules.player.autoshop
 import net.ccbluex.liquidbounce.event.EventListener
 import net.ccbluex.liquidbounce.event.events.GameTickEvent
 import net.ccbluex.liquidbounce.event.handler
+import net.ccbluex.liquidbounce.features.module.modules.render.ModuleDebug
+import net.ccbluex.liquidbounce.utils.client.logger
 import net.ccbluex.liquidbounce.utils.client.player
 import net.ccbluex.liquidbounce.utils.item.getPotionEffects
 import net.ccbluex.liquidbounce.utils.item.id
@@ -39,7 +41,7 @@ import net.minecraft.registry.Registries
  * If the player buys armor, which is known to be received later, after the shop gets closed,
  * the armor will be stored in [pendingItems] until the player receives it.
  */
-class AutoShopInventoryManager : EventListener {
+object AutoShopInventoryManager : EventListener {
 
     private val prevInventoryItems = mutableMapOf<String, Int>()
     private val currentInventoryItems = mutableMapOf<String, Int>()
@@ -76,7 +78,6 @@ class AutoShopInventoryManager : EventListener {
         val inventoryItems = player.inventory.main.toMutableList().apply {
             addAll(player.inventory.armor)
             addAll(player.inventory.offHand)
-            // TODO: should it also include the crafting slots? :)
         }
 
         val newItems = mutableMapOf<String, Int>()
@@ -93,9 +94,6 @@ class AutoShopInventoryManager : EventListener {
 
             // groups items by enchantments
             newItems.sumValues(enchantmentsOf(stack))
-
-            // tracks items with tiers
-            newItems.sumValues(tiersOf(newItems))
         }
 
         // tracks items with tiers
@@ -103,6 +101,12 @@ class AutoShopInventoryManager : EventListener {
 
         // tracks the experience level of the player
         newItems[EXPERIENCE_ID] = player.experienceLevel
+
+        if (ModuleDebug.running) {
+            // todo: remove me!!
+            logger.info(newItems)
+        }
+
         this.update(newItems)
     }
 
@@ -261,6 +265,36 @@ class AutoShopInventoryManager : EventListener {
                 pendingItems[item] = newPendingAmount
             }
         }
+    }
+
+    /**
+     * Checks if the player has received [expectedItems].
+     *
+     * If [expectedItems] contain only armor which can be received only after the shop is closed,
+     * it will check whether the items required to buy it are taken.
+     **/
+    fun hasReceivedItems(prevInventory: Map<String, Int>,
+                         expectedItems: Map<String, Int>): Boolean {
+        val exceptedItemsToGet = expectedItems.filter { it.value > 0 }
+        val exceptedItemsToLose = expectedItems.filter { it.value < 0 }
+        val isArmorOnly = exceptedItemsToGet.all { it.key.isArmorItem() }
+
+        val currentInventory = items
+        val receivedNewItems = exceptedItemsToGet.all { (item, expectedNewAmount) ->
+            val prevItemAmount = prevInventory[item] ?: 0
+            val newItemAmount = currentInventory[item] ?: 0
+
+            newItemAmount - prevItemAmount >= expectedNewAmount
+        }
+
+        val lostPriceItems = isArmorOnly && exceptedItemsToLose.all { (item, expectedNewAmount) ->
+            val prevItemAmount = prevInventory[item] ?: 0
+            val newItemAmount = currentInventory[item] ?: 0
+
+            newItemAmount - prevItemAmount <= expectedNewAmount
+        }
+
+        return receivedNewItems || lostPriceItems
     }
 
     fun addPendingItems(items: Map<String, Int>) {

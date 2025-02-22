@@ -18,9 +18,24 @@
  */
 package net.ccbluex.liquidbounce.features.module.modules.player.autoshop.purchasemode
 
+import kotlinx.coroutines.delay
 import net.ccbluex.liquidbounce.config.types.Choice
 import net.ccbluex.liquidbounce.config.types.ChoiceConfigurable
+import net.ccbluex.liquidbounce.event.Sequence
+import net.ccbluex.liquidbounce.features.module.modules.player.autoshop.AutoShopInventoryManager
+import net.ccbluex.liquidbounce.features.module.modules.player.autoshop.AutoShopInventoryManager.hasReceivedItems
 import net.ccbluex.liquidbounce.features.module.modules.player.autoshop.ModuleAutoShop
+import net.ccbluex.liquidbounce.features.module.modules.player.autoshop.ModuleAutoShop.categorySwitchDelay
+import net.ccbluex.liquidbounce.features.module.modules.player.autoshop.ModuleAutoShop.hasItemCategoryChanged
+import net.ccbluex.liquidbounce.features.module.modules.player.autoshop.ModuleAutoShop.isShopClosed
+import net.ccbluex.liquidbounce.features.module.modules.player.autoshop.ModuleAutoShop.maxItemWaitTime
+import net.ccbluex.liquidbounce.features.module.modules.player.autoshop.ModuleAutoShop.simulateNextPurchases
+import net.ccbluex.liquidbounce.features.module.modules.player.autoshop.isArmorItem
+import net.ccbluex.liquidbounce.features.module.modules.player.autoshop.serializable.ShopElement
+import net.ccbluex.liquidbounce.features.module.modules.player.autoshop.stacks
+import net.ccbluex.liquidbounce.features.module.modules.render.ModuleDebug
+import net.minecraft.client.gui.screen.ingame.GenericContainerScreen
+import net.minecraft.screen.slot.SlotActionType
 
 /**
  * This mode makes the module buy all the items within the same item category.
@@ -34,8 +49,6 @@ import net.ccbluex.liquidbounce.features.module.modules.player.autoshop.ModuleAu
  * - either wait endlessly if [waitForItems] is true
  * - or try to buy the remaining items that should have been bought in the same category
  *
- * TODO: make it try to buy items again instead of letting it wait endlessly
- *
  * [QuickPurchaseMode] is faster that [NormalPurchaseMode] but it's less safe
  * meaning it has a lower chance of buying items after performing a click.
  * Servers usually don't allow players to click too fast and cancel the clicks if they do.
@@ -47,7 +60,7 @@ import net.ccbluex.liquidbounce.features.module.modules.player.autoshop.ModuleAu
  * Here is how the shopping can take place:
  * - The player opens the shop and waits [ModuleAutoShop.startDelay] ticks;
  *
- * - The module opens the "Blocks" category and waits [ModuleAutoShop.extraCategorySwitchDelay] ticks;
+ * - The module opens the "Blocks" category and waits [ModuleAutoShop.categorySwitchDelay] ticks;
  * - The module makes a click to buy some wool blocks for 4 iron ingots;
  *      - The module waits [delay] milliseconds;
  *
@@ -63,7 +76,7 @@ import net.ccbluex.liquidbounce.features.module.modules.player.autoshop.ModuleAu
  *
  * - If [waitForItems] is true, the module waits until all the blocks have been received;
  *
- * - The module opens the "Weapons" category and waits [ModuleAutoShop.extraCategorySwitchDelay] ticks;
+ * - The module opens the "Weapons" category and waits [ModuleAutoShop.categorySwitchDelay] ticks;
  * - The module makes a click to buy a sword for 10 iron ingots;
  *      - The module waits [delay] ticks;
  *
@@ -76,5 +89,64 @@ object QuickPurchaseMode : Choice("Quick") {
         get() = ModuleAutoShop.purchaseMode
 
     val delay by intRange("Delay", 50..70, 0..150, "ms")
-    val waitForItems by boolean("WaitForItems", true)
+    private val waitForItems by boolean("WaitForItems", true)
+
+    /**
+     * Buys multiple items within the same item category.
+     * Waits between clicks based on [delay].
+     * After all clicks have been made,
+     * it waits [maxItemWaitTime] to receive all purchased items
+     * unless the shop gets closed.
+     */
+    suspend fun Sequence<*>.buyAllItemsInCategory(remainingElements: List<ShopElement>) {
+        val simulationResult = simulateNextPurchases(remainingElements, onlySameCategory = true)
+        val slotsToClick = simulationResult.first
+        val prevInventory = AutoShopInventoryManager.items
+
+        val screen = mc.currentScreen as GenericContainerScreen
+        val prevShopStacks = screen.stacks()
+
+        for(slot in slotsToClick) {
+            if (slot == -1) {
+                break    // it means there will be no next category
+            }
+
+            delay(delay.random().toLong())
+            // TODO: the shop might get closed while it's waiting
+
+            interaction.clickSlot(screen.screenHandler.syncId, slot, 0, SlotActionType.PICKUP, player)
+
+            if (ModuleDebug.running) {
+                ModuleAutoShop.recordedClicks.add(slot)
+            }
+        }
+
+        val nextCategorySlot = slotsToClick.last()
+        if (nextCategorySlot != -1) {
+            ModuleAutoShop.prevCategorySlot = nextCategorySlot
+        }
+
+        // expects to get items later
+        val newPendingItems = if (waitForItems) {
+            simulationResult.second.filter { it.key.isArmorItem() }
+        } else { simulationResult.second }
+
+        AutoShopInventoryManager.addPendingItems(newPendingItems)
+
+        // waits for an inventory update and for an item category update
+        val waitedTooMuch = waitConditional(maxItemWaitTime) { isShopClosed() ||
+            (hasReceivedItems(prevInventory, simulationResult.second)
+            && (nextCategorySlot == -1 || hasItemCategoryChanged(prevShopStacks))) }
+
+        if (waitedTooMuch) {
+            val currentElement = remainingElements.first()
+            val category = currentElement.categorySlot
+            val item = currentElement.item.id
+
+            ModuleAutoShop.onFailedClick("Buying multiple items in category $category from $item")
+        } else {
+            // waits extra ticks
+            waitConditional(categorySwitchDelay.random()) { isShopClosed() }
+        }
+    }
 }

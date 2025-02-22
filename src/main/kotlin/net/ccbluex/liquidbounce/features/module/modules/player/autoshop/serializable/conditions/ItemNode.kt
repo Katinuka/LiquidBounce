@@ -25,9 +25,22 @@ import com.google.gson.JsonParseException
 import java.lang.reflect.Type
 
 /**
- * Represents a node with a condition that is satisfied
- * if the player has a specific item in a certain quantity.
- * The quantity of the item must be between [min] and [max], both inclusive.
+ * A node used to describe a condition.
+ * The condition is the presence of the specified item in certain amount.
+ *
+ * Example: {"id": "wool", "min": 16, "max": 32}
+ *
+ * If the player has 16 to 32 wool blocks, both ends are inclusive,
+ * the result of this node will be true when it's been calculated.
+ * Otherwise, it's false.
+ *
+ * If the player shouldn't have an item, this example can be used:
+ *
+ * {"id": "iron_sword", "max": 0}
+ *
+ * If the player should have at least 1 item, this example can be used:
+ *
+ * {"id": "iron_sword"}
  */
 data class ItemNode(
     val id: String,
