@@ -1,0 +1,179 @@
+{
+  "minimum_fields": {
+    "item": {
+      "id": "apple"
+    },
+    "categorySlot": 0,
+    "itemSlot": 19,
+    "price": {
+      "id": "brick"
+    }
+  },
+
+  "minimum_fields2": {
+    "item": {
+      "id": "fireball"
+    },
+    "categorySlot": 6,
+    "itemSlot": 21,
+    "price": {
+      "id": "gold_ingot"
+    }
+  },
+
+  "without_conditions": {
+    "item": {
+      "id": "wool",
+      "minAmount": 128
+    },
+    "amountPerClick": 16,
+    "categorySlot": 1,
+    "itemSlot": 18,
+    "price": {
+      "id": "iron_ingot",
+      "minAmount": 4
+    }
+  },
+
+  "without_conditions2": {
+    "item": {
+      "id": "arrow",
+      "minAmount": 1
+    },
+    "amountPerClick": 1,
+    "categorySlot": 4,
+    "itemSlot": 20,
+    "price": {
+      "id": "gold_ingot",
+      "minAmount": 1
+    }
+  },
+
+  "with_condition": {
+    "item": {
+      "id": "stone_sword"
+    },
+    "categorySlot": 2,
+    "itemSlot": 19,
+    "price": {
+      "id": "iron_ingot",
+      "minAmount": 10
+    },
+    "purchaseConditions": {
+      "id": "wool",
+      "max": 100
+    }
+  },
+
+  "with_condition2": {
+    "item": {
+      "id": "iron_chestplate",
+      "minAmount": 2
+    },
+    "categorySlot": 0,
+    "itemSlot": 11,
+    "price": {
+      "id": "gold_ingot",
+      "minAmount": 7
+    },
+    "purchaseConditions": {
+      "id": "iron_sword"
+    }
+  },
+
+  "with_multiple_conditions": {
+    "item": {
+      "id": "sword:tier::2"
+    },
+    "categorySlot": 0,
+    "itemSlot": 29,
+    "price": {
+      "id": "gold_ingot",
+      "minAmount": 7
+    },
+    "purchaseConditions": {
+      "any": [
+        {
+          "id": "armor:tier::2"
+        },
+        {
+          "id": "armor:tier::3"
+        }
+      ]
+    }
+  },
+
+  "with_conditions_and_comments": {
+    "comment": "golden apple (x12)",
+    "comment2": "it doesn't buy apples when their amount is between 6 and 11 because it already enough (>5)",
+    "comment3": "but as soon as it goes down to 5, it will get replenished up to 12",
+    "comment4": "It might seem to be a weird optimization but I like it :)",
+    "item": {
+      "id": "golden_apple",
+      "minAmount": 12
+    },
+    "categorySlot": 6,
+    "itemSlot": 18,
+    "price": {
+      "id": "gold_ingot",
+      "minAmount": 3
+    },
+    "purchaseConditions": {
+      "all": [
+        {
+          "id": "golden_apple",
+          "min": 0,
+          "max": 5
+        },
+        {
+          "id": "boots:tier::3"
+        },
+        {
+          "id": "sword:tier::2"
+        }
+      ]
+    }
+  },
+
+  "with_nested_conditions": {
+    "item": {
+      "id": "sword:tier::2"
+    },
+    "categorySlot": 1,
+    "itemSlot": 19,
+    "price": {
+      "id": "gold_ingot",
+      "minAmount": 7
+    },
+    "purchaseConditions": {
+      "any": [
+        {
+          "id": "gold_ingot",
+          "min": 16
+        },
+
+        {
+          "all": [
+            {
+              "any": [
+                {
+                  "id": "gold_ingot",
+                  "min": 10
+                },
+                {
+                  "id": "golden_apple"
+                }
+              ]
+            },
+            {
+              "id": "leggings:tier::3"
+            },
+            {
+              "id": "chestplate:tier::3"
+            }
+          ]
+        }
+      ]
+    }
+  }
+}
