@@ -57,6 +57,8 @@ class ItemInfoDeserializer : JsonDeserializer<ItemInfo> {
         val id = jsonObject["id"].asString
         val minAmount = jsonObject["minAmount"]?.asInt ?: 1
 
+        require(minAmount >= 0) { "'minAmount' property must be a non-negative integer!" }
+
         return ItemInfo(id, minAmount)
     }
 }

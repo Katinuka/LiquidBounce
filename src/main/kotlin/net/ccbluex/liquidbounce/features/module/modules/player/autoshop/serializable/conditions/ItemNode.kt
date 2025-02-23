@@ -73,6 +73,9 @@ class ItemNodeDeserializer : JsonDeserializer<ItemNode> {
         val min = jsonObject["min"]?.asInt ?: 1
         val max = jsonObject["max"]?.asInt ?: Int.MAX_VALUE
 
+        require(min >= 0) { "'min' property must be a non-negative integer!" }
+        require(max >= 0) { "'max' property must be a non-negative integer!" }
+
         return ItemNode(id, min, max)
     }
 }

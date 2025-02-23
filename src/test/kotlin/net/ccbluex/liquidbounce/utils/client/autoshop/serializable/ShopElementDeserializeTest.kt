@@ -34,7 +34,7 @@ object ShopElementDeserializeTest {
     }
 
     @Test
-    fun shopElementWithoutConditionsTest() {
+    fun testShopElementWithoutConditions() {
         assertEquals(
             ShopElement(
                 item = ItemInfo(id="apple", minAmount = 1),
@@ -81,7 +81,7 @@ object ShopElementDeserializeTest {
     }
 
     @Test
-    fun shopElementWithConditionsTest() {
+    fun testShopElementWithConditions() {
         assertEquals(
             ShopElement(
                 item = ItemInfo(id = "stone_sword"),

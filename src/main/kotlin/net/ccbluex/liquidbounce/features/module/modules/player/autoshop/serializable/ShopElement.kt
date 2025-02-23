@@ -51,6 +51,8 @@ data class ShopElement (
  * where necessary.
  */
 class ShopElementDeserializer : JsonDeserializer<ShopElement> {
+    private val requiredFields = arrayOf("item", "categorySlot", "itemSlot", "price")
+
     override fun deserialize(json: JsonElement?, typeOfT: Type, context: JsonDeserializationContext): ShopElement {
         if (json == null || !json.isJsonObject) {
             throw JsonParseException("Invalid JSON: Expected a JsonObject")
@@ -58,8 +60,11 @@ class ShopElementDeserializer : JsonDeserializer<ShopElement> {
 
         val jsonObject = json.asJsonObject
 
-        if (!jsonObject.has("item")) {
-            throw JsonParseException("Invalid JSON: Missing 'item' property")
+        val missingFields = requiredFields.filter { !jsonObject.has(it) }
+
+        if (missingFields.isNotEmpty()) {
+            val missingFieldsMessage = missingFields.joinToString(", ") { "'$it'" }
+            throw JsonParseException("Invalid JSON: Missing the following properties: $missingFieldsMessage")
         }
 
         val item = context.deserialize<ItemInfo>(jsonObject["item"], ItemInfo::class.javaObjectType)
@@ -71,6 +76,10 @@ class ShopElementDeserializer : JsonDeserializer<ShopElement> {
         val purchaseConditions = jsonObject["purchaseConditions"]?.let {
             context.deserialize<ConditionNode>(it, ConditionNode::class.javaObjectType)
         }
+
+        require(amountPerClick > 0) { "'amountPerClick' property must be a positive integer!" }
+        require(categorySlot >= 0) { "'categorySlot' property must be a non-negative integer!" }
+        require(itemSlot >= 0) { "'itemSlot' property must be a non-negative integer!" }
 
         return ShopElement(item, amountPerClick, categorySlot, itemSlot, price, purchaseConditions)
     }

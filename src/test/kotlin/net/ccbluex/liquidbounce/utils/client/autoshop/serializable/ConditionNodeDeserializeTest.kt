@@ -33,7 +33,7 @@ object ConditionNodeDeserializeTest {
     }
 
     @Test
-    fun itemConditionNodeTest() {
+    fun testItemConditionNode() {
         assertEquals(
             ItemNode(id="wool", min=16, max=32),
             parse("simple_item")
@@ -61,7 +61,7 @@ object ConditionNodeDeserializeTest {
     }
 
     @Test
-    fun allConditionNodeTest() {
+    fun testAllConditionNode() {
         assertEquals(
             AllNode(listOf(
                 ItemNode(id="wool", min=32, max=64),
@@ -94,7 +94,7 @@ object ConditionNodeDeserializeTest {
     }
 
     @Test
-    fun anyConditionNodeTest() {
+    fun testAnyConditionNode() {
         assertEquals(
             AnyNode(listOf(
                 ItemNode(id="wool", min = 32, max = 128),
@@ -138,7 +138,7 @@ object ConditionNodeDeserializeTest {
     }
 
     @Test
-    fun mixedConditionNodeTest() {
+    fun testMixedConditionNode() {
         assertEquals(
             AnyNode(listOf(
                 ItemNode(id="gold_ingot", min=16),
