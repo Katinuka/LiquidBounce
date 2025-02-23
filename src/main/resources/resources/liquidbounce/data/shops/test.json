@@ -1,0 +1,62 @@
+{
+  "comment": "An example config for my server",
+  "traderTitles": ["quick buy", "blocks", "melee", "armor", "tools", "ranged", "potions", "utility"],
+  "initialCategorySlot": 0,
+  "tierDictionary": {
+    "sword":	["stone_sword", "iron_sword", "diamond_sword"],
+    "armor":	["chainmail_boots", "iron_boots", "diamond_boots"],
+    "axe": 		["wooden_axe", "iron_axe", "golden_axe", "diamond_axe"],
+    "pickaxe":	["wooden_pickaxe", "iron_pickaxe", "golden_pickaxe", "diamond_pickaxe"],
+    "bow":		["bow", "bow:power::1", "bow:punch::1"]
+  },
+  "elements": [
+    {
+      "item": {"id": "armor:tier::3"},
+      "categorySlot": 3, "itemSlot": 21,
+      "price": {"id": "emerald", "minAmount": 6}
+    },
+    {
+      "item": {"id": "armor:tier::2"},
+      "categorySlot": 3, "itemSlot": 20,
+      "price": {"id": "gold_ingot", "minAmount": 12}
+    },
+    {
+      "item": {"id": "armor:tier::1"},
+      "categorySlot": 3, "itemSlot": 19,
+      "price": {"id": "iron_ingot", "minAmount": 24}
+    },
+    {
+      "item": {"id": "wool", "minAmount": 80}, "amountPerClick": 16,
+      "categorySlot": 0, "itemSlot": 19,
+      "price": {"id": "iron_ingot", "minAmount": 4}
+    },
+    {
+      "item": {"id": "sword:tier::3"},
+      "categorySlot": 2, "itemSlot": 21,
+      "price": {"id": "emerald", "minAmount": 4},
+      "purchaseConditions": {"id": "armor:tier::3"}
+    },
+    {
+      "item": {"id": "sword:tier::2"},
+      "categorySlot": 0, "itemSlot": 29,
+      "price": {"id": "gold_ingot", "minAmount": 7},
+      "purchaseConditions": {"any": [{"id": "armor:tier::2"}, {"id": "armor:tier::3"}]}
+    },
+    {
+      "item": {"id": "sword:tier::1"},
+      "categorySlot": 0, "itemSlot": 20,
+      "price": {"id": "iron_ingot", "minAmount": 10}
+    },
+    {
+      "item": {"id": "golden_apple", "minAmount": 3},
+      "categorySlot": 7, "itemSlot": 19,
+      "price": {"id": "gold_ingot", "minAmount": 3},
+      "purchaseConditions": {"any": [{"id": "armor:tier::2"}, {"id": "armor:tier::3"}]}
+    },
+    {
+      "item": {"id": "sword:tier::1", "minAmount": 6},
+      "categorySlot": 0, "itemSlot": 20,
+      "price": {"id": "iron_ingot", "minAmount": 10}
+    }
+  ]
+}
