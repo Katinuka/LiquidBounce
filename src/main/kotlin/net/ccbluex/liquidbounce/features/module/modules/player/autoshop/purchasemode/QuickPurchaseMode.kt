@@ -30,9 +30,9 @@ import net.ccbluex.liquidbounce.features.module.modules.player.autoshop.ModuleAu
 import net.ccbluex.liquidbounce.features.module.modules.player.autoshop.ModuleAutoShop.isShopClosed
 import net.ccbluex.liquidbounce.features.module.modules.player.autoshop.ModuleAutoShop.maxItemWaitTime
 import net.ccbluex.liquidbounce.features.module.modules.player.autoshop.ModuleAutoShop.simulateNextPurchases
-import net.ccbluex.liquidbounce.features.module.modules.player.autoshop.isArmorItem
+import net.ccbluex.liquidbounce.features.module.modules.player.autoshop.utils.isArmorItem
 import net.ccbluex.liquidbounce.features.module.modules.player.autoshop.serializable.ShopElement
-import net.ccbluex.liquidbounce.features.module.modules.player.autoshop.stacks
+import net.ccbluex.liquidbounce.features.module.modules.player.autoshop.utils.stacks
 import net.ccbluex.liquidbounce.features.module.modules.render.ModuleDebug
 import net.minecraft.client.gui.screen.ingame.GenericContainerScreen
 import net.minecraft.screen.slot.SlotActionType

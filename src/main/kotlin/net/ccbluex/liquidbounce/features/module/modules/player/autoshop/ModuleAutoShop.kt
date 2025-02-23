@@ -33,6 +33,10 @@ import net.ccbluex.liquidbounce.features.module.modules.player.autoshop.serializ
 import net.ccbluex.liquidbounce.features.module.modules.player.autoshop.serializable.ShopConfig
 import net.ccbluex.liquidbounce.features.module.modules.player.autoshop.serializable.ShopElement
 import net.ccbluex.liquidbounce.features.module.modules.player.autoshop.serializable.conditions.ConditionCalculator
+import net.ccbluex.liquidbounce.features.module.modules.player.autoshop.utils.CURRENCY_ITEMS
+import net.ccbluex.liquidbounce.features.module.modules.player.autoshop.utils.betterItemsOf
+import net.ccbluex.liquidbounce.features.module.modules.player.autoshop.utils.checkRequirements
+import net.ccbluex.liquidbounce.features.module.modules.player.autoshop.utils.stacks
 import net.ccbluex.liquidbounce.features.module.modules.render.ModuleDebug
 import net.ccbluex.liquidbounce.utils.client.chat
 import net.ccbluex.liquidbounce.utils.client.notification
@@ -43,7 +47,6 @@ import net.ccbluex.liquidbounce.utils.kotlin.sumValues
 import net.minecraft.client.gui.screen.ingame.GenericContainerScreen
 import net.minecraft.screen.slot.SlotActionType
 import kotlin.math.ceil
-import kotlin.math.min
 
 /**
  * AutoShop module
@@ -68,16 +71,14 @@ object ModuleAutoShop : ClientModule("AutoShop", Category.PLAYER) {
     private val startDelay by intRange("StartDelay", 1..2, 0..10, "ticks")
 
     /**
-     * Mode that defines how clicks should be performed.
-     * This may affect the purchase order.
+     * Mode that defines how clicks should be performed. This may affect the purchase order.
      */
     val purchaseMode = choices(this, "PurchaseMode", NormalPurchaseMode,
         arrayOf(NormalPurchaseMode, QuickPurchaseMode)
     )
 
     /**
-     * The delay between changing an item category
-     * and the first click within that category.
+     * The delay between changing an item category and the first click within that category.
      */
     val categorySwitchDelay by intRange("categorySwitchDelay", 3..4,
         0..10, "ticks")
@@ -93,9 +94,6 @@ object ModuleAutoShop : ClientModule("AutoShop", Category.PLAYER) {
      */
     private val autoClose by boolean("AutoClose", true)
 
-    /**
-     * Tracks the items the player currently has or is expected to receive later.
-     */
     private var waitedBeforeTheFirstClick = false
     private var canAutoClose = false    // allows closing the shop menu only after a purchase
     var prevCategorySlot = -1
@@ -260,7 +258,8 @@ object ModuleAutoShop : ClientModule("AutoShop", Category.PLAYER) {
      */
     fun simulateNextPurchases(
         remainingElements: List<ShopElement>,
-        onlySameCategory: Boolean) : Pair<List<Int>, Map<String, Int>> {
+        onlySameCategory: Boolean) : Pair<List<Int>, Map<String, Int>>
+    {
 
         if (remainingElements.isEmpty()) {
             return Pair(emptyList(), emptyMap())
@@ -279,13 +278,14 @@ object ModuleAutoShop : ClientModule("AutoShop", Category.PLAYER) {
                 continue
             }
 
-            val requiredItems = mapOf(element.price.id to element.price.minAmount)
-            val clicks = getRequiredClicks(element, currentItems, requiredItems)
+            val clicks = getRequiredClicks(element, currentItems)
+
             if (clicks < 1) {
                 continue    // we can't buy the item actually
             }
 
             // subtracts the required items from the limited items we have
+            val requiredItems = mapOf(element.price.id to element.price.minAmount)
             currentItems.sumValues(requiredItems.mapValues { -it.value * clicks })
             currentItems.incrementOrSet(element.item.id, element.amountPerClick * clicks)
 
@@ -328,7 +328,8 @@ object ModuleAutoShop : ClientModule("AutoShop", Category.PLAYER) {
     private fun checkElement(
         shopElement: ShopElement,
         remainingElements: List<ShopElement>? = null,
-        items: Map<String, Int> = AutoShopInventoryManager.items) : Boolean {
+        items: Map<String, Int> = AutoShopInventoryManager.items)
+    : Boolean {
 
         // checks if the player already has the required item to be bought
         val betterItemAmount = betterItemsOf(shopElement.item.id, items).values.sum()
@@ -360,32 +361,49 @@ object ModuleAutoShop : ClientModule("AutoShop", Category.PLAYER) {
         return true
     }
 
+    fun getRequiredClicks(element: ShopElement, items: Map<String, Int>) : Int {
+        val betterItemAmount = betterItemsOf(element.item.id, items).values.sum()
+        val amount = (items[element.item.id] ?: 0) + betterItemAmount
+
+        return getRequiredClicks(
+            currentAmount = amount,
+            requiredAmount = element.item.minAmount,
+            amountPerClick = element.amountPerClick,
+            currentCurrencyItems = items.filterKeys { it in CURRENCY_ITEMS },
+            requiredCurrencyItems = mapOf(element.price.id to element.price.minAmount)
+        )
+    }
+
     /**
-     * Returns the number of clicks that can be performed to buy an item
+     * Returns the number of clicks that can be performed to buy items.
      * For example, it might need 4 clicks to buy wool blocks
      * but there might be enough resources only for 3 clicks.
      */
-    private fun getRequiredClicks(
-        shopElement: ShopElement,
-        items: Map<String, Int>,
-        requiredCurrencyItems: Map<String, Int>) : Int {
+    fun getRequiredClicks(
+        currentAmount: Int,
+        requiredAmount: Int,
+        amountPerClick: Int,
+        currentCurrencyItems: Map<String, Int>,
+        requiredCurrencyItems: Map<String, Int>
+    ) : Int {
 
-        val currentCurrencyItems = items.filterKeys { it in CURRENCY_ITEMS }
-        val betterItemAmount = betterItemsOf(shopElement.item.id, items).values.sum()
-        val currentItemAmount = min(
-            betterItemAmount + (items[shopElement.item.id] ?: 0),
-            shopElement.item.minAmount)
-        val maxBuyClicks = ceil(
-            1f * (shopElement.item.minAmount - currentItemAmount) / shopElement.amountPerClick).toInt()
-        var minMultiplier = Int.MAX_VALUE
+        // checks data requirements
+        checkRequirements(amountPerClick, currentCurrencyItems, requiredCurrencyItems)
 
-        for (key in requiredCurrencyItems.keys) {
+        val difference = requiredAmount - currentAmount
+
+        if (difference <= 0) {
+            return 0    // There are more items than required :)
+        }
+
+        val maxBuyClicks = ceil(1f * difference / amountPerClick).toInt()
+
+        return requiredCurrencyItems.keys.minOfOrNull { key ->
             val requiredItemsAmount = requiredCurrencyItems[key] ?: 0
             val currentItemsAmount = currentCurrencyItems[key] ?: 0
-            val newMultiplier = min(maxBuyClicks, currentItemsAmount / requiredItemsAmount)
-            minMultiplier = min(minMultiplier, newMultiplier)
-        }
-        return minMultiplier
+
+            (currentItemsAmount / requiredItemsAmount).coerceAtMost(maxBuyClicks)
+        } ?: maxBuyClicks
     }
 
     /**

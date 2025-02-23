@@ -19,6 +19,7 @@
 package net.ccbluex.liquidbounce.features.module.modules.player.autoshop.serializable.conditions
 
 import net.ccbluex.liquidbounce.features.module.modules.player.autoshop.*
+import net.ccbluex.liquidbounce.features.module.modules.player.autoshop.utils.betterItemsOf
 
 /**
  * Calculates the values of condition nodes based on the [items] the player has.

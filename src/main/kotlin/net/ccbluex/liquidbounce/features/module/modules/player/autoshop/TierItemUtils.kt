@@ -1,5 +1,7 @@
 package net.ccbluex.liquidbounce.features.module.modules.player.autoshop
 
+import net.ccbluex.liquidbounce.features.module.modules.player.autoshop.utils.TIER_ID
+
 fun String.isItemWithTiers() : Boolean {
     return this.contains(TIER_ID)
 }
