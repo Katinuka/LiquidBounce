@@ -170,6 +170,9 @@ object ModuleSpeed : ClientModule("Speed", Category.MOVEMENT) {
             get() = when {
                 !inGame || isDestructed -> false
                 !ModuleSpeed.enabled || !this.enabled || !passesRequirements() -> false
+                // TODO: right now OnlyInCombat has the priority over OnlyOnPotionEffect
+                //  and this might not be always correct
+                OnlyInCombat.enabled && CombatManager.isInCombat -> false
                 else -> potionEffects.activeChoice.checkPotionEffects()
             }
 
