@@ -21,7 +21,6 @@ package net.ccbluex.liquidbounce.utils.client
 import net.ccbluex.liquidbounce.event.EventListener
 import net.ccbluex.liquidbounce.event.events.GameTickEvent
 import net.ccbluex.liquidbounce.event.handler
-import net.ccbluex.liquidbounce.features.module.ClientModule
 import net.ccbluex.liquidbounce.utils.client.Timer.requestTimerSpeed
 import net.ccbluex.liquidbounce.utils.kotlin.EventPriorityConvention.FIRST_PRIORITY
 import net.ccbluex.liquidbounce.utils.kotlin.Priority
@@ -43,10 +42,10 @@ object Timer : EventListener {
     }
 
     /**
-     * Requests a timer speed change. If another module requests with a higher priority,
-     * the other module is prioritized.
+     * Requests a timer speed change. If another event listener requests with a higher priority,
+     * the other event listener is prioritized.
      */
-    fun requestTimerSpeed(timerSpeed: Float, priority: Priority, provider: ClientModule, resetAfterTicks: Int = 1) {
+    fun requestTimerSpeed(timerSpeed: Float, priority: Priority, provider: EventListener, resetAfterTicks: Int = 1) {
         requestHandler.request(
             RequestHandler.Request(
                 // this prevents requests from being instantly removed

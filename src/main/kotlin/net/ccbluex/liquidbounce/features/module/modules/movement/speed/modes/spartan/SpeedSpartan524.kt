@@ -24,7 +24,6 @@ import net.ccbluex.liquidbounce.config.types.nesting.Choice
 import net.ccbluex.liquidbounce.config.types.nesting.ChoiceConfigurable
 import net.ccbluex.liquidbounce.event.events.PlayerMoveEvent
 import net.ccbluex.liquidbounce.event.handler
-import net.ccbluex.liquidbounce.features.module.modules.movement.speed.ModuleSpeed
 import net.ccbluex.liquidbounce.utils.client.MovePacketType
 import net.ccbluex.liquidbounce.utils.client.Timer
 import net.ccbluex.liquidbounce.utils.entity.airTicks
@@ -94,7 +93,7 @@ class SpeedSpartanV4043FastFall(override val parent: ChoiceConfigurable<*>) : Ch
 
             event.movement.y = 0.42
         } else if (player.airTicks == 1) {
-            Timer.requestTimerSpeed(0.5f, Priority.NORMAL, ModuleSpeed, 0)
+            Timer.requestTimerSpeed(0.5f, Priority.NORMAL, parent.eventListener, 0)
 
             network.sendPacket(MovePacketType.FULL.generatePacket().apply { // for some reason full works best
                 onGround = true
