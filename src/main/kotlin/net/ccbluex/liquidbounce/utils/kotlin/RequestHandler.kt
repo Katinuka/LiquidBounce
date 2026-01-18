@@ -1,7 +1,7 @@
 /*
  * This file is part of LiquidBounce (https://github.com/CCBlueX/LiquidBounce)
  *
- * Copyright (c) 2015 - 2025 CCBlueX
+ * Copyright (c) 2015 - 2026 CCBlueX
  *
  * LiquidBounce is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -19,7 +19,7 @@
 package net.ccbluex.liquidbounce.utils.kotlin
 
 import net.ccbluex.liquidbounce.event.EventListener
-import net.minecraft.client.MinecraftClient
+import net.minecraft.client.Minecraft
 import java.util.concurrent.PriorityBlockingQueue
 
 class RequestHandler<T> {
@@ -42,7 +42,7 @@ class RequestHandler<T> {
     fun getActiveRequestValue(): T? {
         var top = activeRequests.peek() ?: return null
 
-        if (MinecraftClient.getInstance()?.isOnThread != false) {
+        if (Minecraft.getInstance()?.isSameThread != false) {
             // we remove all outdated requests here
             while (top.expiresIn <= currentTick || !top.provider.running) {
                 activeRequests.remove()
